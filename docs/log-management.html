@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログ管理 - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+<button class="hamburger-btn" aria-label="メニュー">&#9776;</button>
+
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <h2 style="color:#fff;">Super Access Log</h2>
+        <span class="version">v1.0.0</span>
+        <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+    </div>
+    <ul>
+        <li><a href="index.html">概要</a></li>
+        <li><a href="setup.html">インストール・初期設定</a></li>
+        <li class="active"><a href="log-management.html">ログ管理</a></li>
+        <li><a href="troubleshooting.html">トラブルシューティング</a></li>
+    </ul>
+</nav>
+
+<main class="content">
+    <h1>ログ管理</h1>
+    <p class="lead">アクセスログの閲覧、フィルタリング、Chart.jsによるトレンドチャート表示、CSV出力・インポートなどのログ管理機能を解説します。</p>
+
+    <h2>アクセスログの閲覧</h2>
+
+    <p>管理画面のログ一覧では、記録されたアクセスログをテーブル形式で確認できます。</p>
+
+    <figure class="screenshot">
+        <img src="images/screenshots/02-accesslog-detail.png" alt="アクセスログ管理" class="lightbox-trigger">
+        <figcaption>アクセスログの一覧と分析</figcaption>
+    </figure>
+
+    <h3>表示カラム</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">カラム名</th>
+                <th>説明</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>日時</td>
+                <td>アクセスが記録された日時</td>
+            </tr>
+            <tr>
+                <td>訪問者ID</td>
+                <td>Cookie IDベースの訪問者識別子</td>
+            </tr>
+            <tr>
+                <td>IPアドレス</td>
+                <td>アクセス元のIPアドレス</td>
+            </tr>
+            <tr>
+                <td>リクエストURL</td>
+                <td>アクセスされたページのURL</td>
+            </tr>
+            <tr>
+                <td>User-Agent</td>
+                <td>ブラウザ・ボットのUser-Agent文字列</td>
+            </tr>
+            <tr>
+                <td>ボット判定</td>
+                <td>ボット検出パターンに一致したかどうか</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout callout-tip">
+        <div class="callout-title">ヒント</div>
+        <p>表示カラムは設定画面でカスタマイズ可能です。必要なカラムのみを表示して視認性を高めることができます。</p>
+    </div>
+
+    <h2>フィルタリング</h2>
+
+    <p>ログ一覧は様々な条件でフィルタリングできます。</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">フィルタ条件</th>
+                <th>説明</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>日付範囲</td>
+                <td>開始日と終了日を指定してログを絞り込み</td>
+            </tr>
+            <tr>
+                <td>訪問者ID</td>
+                <td>特定の訪問者IDに絞り込み</td>
+            </tr>
+            <tr>
+                <td>IPアドレス</td>
+                <td>特定のIPアドレスに絞り込み</td>
+            </tr>
+            <tr>
+                <td>URL</td>
+                <td>リクエストURLのキーワードで絞り込み</td>
+            </tr>
+            <tr>
+                <td>ボット/ヒューマン</td>
+                <td>ボットアクセスまたは実ユーザーアクセスに絞り込み</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-body">
+            <p>ログ一覧上部のフィルタエリアで条件を入力または選択します。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-body">
+            <p>「フィルタ適用」ボタンをクリックすると、AJAXで条件に一致するログのみが表示されます。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-body">
+            <p>「フィルタクリア」ボタンで条件をリセットし、全ログを表示できます。</p>
+        </div>
+    </div>
+
+    <h2>トレンドチャート</h2>
+
+    <p>Chart.jsを使用したトレンドチャートで、アクセス傾向を視覚的に把握できます。</p>
+
+    <h3>チャートの種類</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">チャート</th>
+                <th>表示内容</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>アクセス推移</td>
+                <td>日別・時間別のアクセス数推移を折れ線グラフで表示</td>
+            </tr>
+            <tr>
+                <td>ページ別アクセス</td>
+                <td>アクセスの多いページをランキング形式で表示</td>
+            </tr>
+            <tr>
+                <td>ボット割合</td>
+                <td>ボットアクセスと実ユーザーアクセスの比率を表示</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout callout-note">
+        <div class="callout-title">補足</div>
+        <p>チャートの最大レコード数は設定で制限できます（デフォルト: 100,000件）。大量のログデータがある場合、チャート表示のパフォーマンスに影響する可能性があります。</p>
+    </div>
+
+    <h2>CSV出力</h2>
+
+    <p>アクセスログをCSV形式でエクスポートできます。</p>
+
+    <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-body">
+            <p>ログ管理画面で「CSVエクスポート」ボタンをクリックします。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-body">
+            <p>現在のフィルタ条件が適用されたログデータがCSVファイルとしてダウンロードされます。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-body">
+            <p>ダウンロードしたCSVファイルは、Excel、Googleスプレッドシート、その他の分析ツールで活用できます。</p>
+        </div>
+    </div>
+
+    <div class="callout callout-tip">
+        <div class="callout-title">ヒント</div>
+        <p>定期的にCSVエクスポートを行い、データ保持期間で自動削除される前のログをバックアップすることを推奨します。</p>
+    </div>
+
+    <h2>CSVインポート</h2>
+
+    <p>以前エクスポートしたCSVファイルをインポートして、ログデータを復元できます。</p>
+
+    <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-body">
+            <p>ログ管理画面で「CSVインポート」ボタンをクリックします。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-body">
+            <p>インポートするCSVファイルを選択します。ファイル形式は本プラグインでエクスポートしたCSV形式に準拠している必要があります。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-body">
+            <p>インポートが実行され、データがカスタムテーブルに追加されます。</p>
+        </div>
+    </div>
+
+    <div class="callout callout-warning">
+        <div class="callout-title">注意</div>
+        <p>大量のデータをインポートする場合、処理に時間がかかる場合があります。PHPの実行時間制限やメモリ制限に注意してください。</p>
+    </div>
+
+    <h2>訪問者ブロック</h2>
+
+    <p>特定の訪問者IDやUser-Agentからのアクセスをブロックする機能があります。</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">ブロック種別</th>
+                <th>説明</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>訪問者IDブロック</td>
+                <td>特定のCookie IDを持つ訪問者のアクセスをログから除外</td>
+            </tr>
+            <tr>
+                <td>User-Agentブロック</td>
+                <td>特定のUser-Agentパターンに一致するアクセスをブロック</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>自動クリーンアップ</h2>
+
+    <p>設定した保持期間を超えたログデータは、Cronジョブ（<code>kssl_cleanup_old_logs</code>）により自動的に削除されます。また、月次の最適化Cron（<code>kssl_monthly_optimization</code>）により、テーブルの最適化が実行されます。</p>
+
+    <div class="callout callout-note">
+        <div class="callout-title">補足</div>
+        <p>自動クリーンアップはバッチ処理（1,000件ずつ）で実行されるため、サーバーへの負荷を最小限に抑えています。</p>
+    </div>
+
+    <nav class="page-nav">
+        <a href="setup.html" class="prev">&laquo; インストール・初期設定</a>
+        <a href="troubleshooting.html" class="next">トラブルシューティング &raquo;</a>
+    </nav>
+
+    <footer class="manual-footer">
+        <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+        <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.0</p>
+    </footer>
+</main>
+
+<div class="lightbox"></div>
+<script src="js/manual.js?v=1"></script>
+</body>
+</html>

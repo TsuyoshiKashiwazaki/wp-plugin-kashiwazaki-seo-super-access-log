@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>トラブルシューティング - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+<button class="hamburger-btn" aria-label="メニュー">&#9776;</button>
+
+<nav class="sidebar">
+    <div class="sidebar-header">
+        <h2 style="color:#fff;">Super Access Log</h2>
+        <span class="version">v1.0.0</span>
+        <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+    </div>
+    <ul>
+        <li><a href="index.html">概要</a></li>
+        <li><a href="setup.html">インストール・初期設定</a></li>
+        <li><a href="log-management.html">ログ管理</a></li>
+        <li class="active"><a href="troubleshooting.html">トラブルシューティング</a></li>
+    </ul>
+</nav>
+
+<main class="content">
+    <h1>トラブルシューティング</h1>
+    <p class="lead">Kashiwazaki SEO Super Access Log の使用中に発生しうる問題と対処法、動作要件、技術仕様について解説します。</p>
+
+    <h2>よくある問題と対処法</h2>
+
+    <h3>アクセスログが記録されない</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">考えられる原因</th>
+                <th>対処法</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>プラグインが有効化されていない</td>
+                <td>管理画面の「プラグイン」一覧で、本プラグインが有効になっていることを確認してください。</td>
+            </tr>
+            <tr>
+                <td>カスタムテーブルが作成されていない</td>
+                <td>プラグインを一度無効化してから再有効化してください。有効化時にテーブルが自動作成されます。</td>
+            </tr>
+            <tr>
+                <td>除外設定に該当している</td>
+                <td>設定画面の除外URIパターン、静的ファイル除外、自サーバーIP除外の設定を確認してください。</td>
+            </tr>
+            <tr>
+                <td>キャッシュプラグインがPHP実行をスキップしている</td>
+                <td>フルページキャッシュが有効な場合、PHPが実行されずログが記録されないことがあります。キャッシュプラグインの設定を確認してください。</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>チャートが表示されない</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">考えられる原因</th>
+                <th>対処法</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Chart.jsが読み込まれていない</td>
+                <td>ブラウザの開発者ツールのコンソールでJavaScriptエラーがないか確認してください。</td>
+            </tr>
+            <tr>
+                <td>ログデータが存在しない</td>
+                <td>チャートはログデータに基づいて描画されます。十分なデータが蓄積されてから確認してください。</td>
+            </tr>
+            <tr>
+                <td>他のプラグインとJavaScriptが競合している</td>
+                <td>他のプラグインを一時的に無効化して、競合がないか確認してください。</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>CSVエクスポートが失敗する</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">考えられる原因</th>
+                <th>対処法</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>データ量が多すぎる</td>
+                <td>フィルタ条件で期間を絞り込んでからエクスポートしてください。</td>
+            </tr>
+            <tr>
+                <td>PHPメモリ制限に達している</td>
+                <td><code>wp-config.php</code> で <code>WP_MEMORY_LIMIT</code> を引き上げてください（推奨: 256M以上）。</td>
+            </tr>
+            <tr>
+                <td>PHP実行時間制限に達している</td>
+                <td>サーバーの <code>max_execution_time</code> を確認してください。本プラグインは最大300秒に設定しています。</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>ボットが正しく検出されない</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">考えられる原因</th>
+                <th>対処法</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>ボット検出パターンが不足している</td>
+                <td>設定画面のボット検出パターンに、検出したいボットのUser-Agentパターンを追加してください。</td>
+            </tr>
+            <tr>
+                <td>ボットがUser-Agentを偽装している</td>
+                <td>User-Agentを偽装するボットはパターンマッチングでは検出できません。IPアドレスや行動パターンで判断してください。</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout callout-tip">
+        <div class="callout-title">ヒント</div>
+        <p>問題が解決しない場合は、一度プラグインを無効化してから再有効化してみてください。設定値はデータベースに保持されるため、再有効化後も設定は維持されます。</p>
+    </div>
+
+    <h2>動作要件</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:35%;">項目</th>
+                <th>要件</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>WordPress</td>
+                <td>5.0 以上</td>
+            </tr>
+            <tr>
+                <td>PHP</td>
+                <td>7.4 以上</td>
+            </tr>
+            <tr>
+                <td>対応ブラウザ</td>
+                <td>Chrome、Firefox、Safari、Edge（最新版）</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>技術仕様</h2>
+
+    <ul>
+        <li><strong>データ保存:</strong> wp_options（kssl_*系17キー）</li>
+        <li><strong>カスタムテーブル:</strong> kssl_access_logs</li>
+        <li><strong>外部通信:</strong> なし</li>
+        <li><strong>Cronイベント:</strong> kssl_monthly_optimization（月次テーブル最適化）、kssl_cleanup_old_logs（自動クリーンアップ）</li>
+        <li><strong>メール送信:</strong> なし</li>
+        <li><strong>AJAXハンドラー:</strong> 20個（ログ取得・フィルタ・チャート・CSV操作・設定関連）</li>
+        <li><strong>フロントエンド:</strong> Cookieベースの訪問者トラッキングのみ（JSON-LD・metaタグ出力なし）</li>
+        <li><strong>セキュリティ:</strong> nonce検証、権限チェック、入出力サニタイズ、不審アクセス検出</li>
+    </ul>
+
+    <h2>アーキテクチャ</h2>
+
+    <p>Kashiwazaki SEO Super Access Log は以下のコンポーネントで構成されています。</p>
+
+    <h3>フロントエンド（トラッキング）</h3>
+    <ul>
+        <li>Cookieベースの訪問者ID発行と再訪問識別</li>
+        <li>User-Agentパターンマッチングによるボット自動判定</li>
+        <li>不審なリクエストURLパターンの検出</li>
+        <li>アクセスデータのカスタムテーブルへの記録</li>
+    </ul>
+
+    <h3>バックエンド（管理画面）</h3>
+    <ul>
+        <li>20個のAJAXハンドラーによるログの取得・フィルタ・チャート描画・CSV操作</li>
+        <li>Chart.jsによるアクセストレンドの可視化</li>
+        <li>CSVエクスポート・インポート機能</li>
+        <li>訪問者ブロック・User-Agentブロック機能</li>
+        <li><code>manage_options</code> 権限のユーザーのみアクセス可能</li>
+    </ul>
+
+    <h3>Cronジョブ</h3>
+    <ul>
+        <li><code>kssl_cleanup_old_logs</code>: 保持期間を超えたログの自動削除（バッチ1,000件ずつ）</li>
+        <li><code>kssl_monthly_optimization</code>: 月次のテーブル最適化（OPTIMIZE TABLE）</li>
+    </ul>
+
+    <h3>アクセス記録フロー</h3>
+
+    <div class="step">
+        <span class="step-number">1</span>
+        <div class="step-body">
+            <p>訪問者がサイトにアクセスすると、フロントエンドのトラッキング処理が開始されます。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">2</span>
+        <div class="step-body">
+            <p>除外設定（URI パターン、静的ファイル、自サーバーIP、空UA）に該当するかチェックします。該当する場合は記録をスキップします。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">3</span>
+        <div class="step-body">
+            <p>Cookie IDの存在を確認し、新規訪問者にはCookie IDを発行します。既存訪問者のCookieは更新されます。</p>
+        </div>
+    </div>
+
+    <div class="step">
+        <span class="step-number">4</span>
+        <div class="step-body">
+            <p>User-Agentパターンマッチングでボット判定を行い、アクセスデータをカスタムテーブル <code>kssl_access_logs</code> に記録します。</p>
+        </div>
+    </div>
+
+    <div class="callout callout-note">
+        <div class="callout-title">補足</div>
+        <p>プラグインの削除時は、<code>uninstall.php</code> によりカスタムテーブル <code>kssl_access_logs</code>、<code>wp_options</code> のkssl_*系設定、Cronイベントが自動的にクリーンアップされます。</p>
+    </div>
+
+    <nav class="page-nav">
+        <a href="log-management.html" class="prev">&laquo; ログ管理</a>
+        <span></span>
+    </nav>
+
+    <footer class="manual-footer">
+        <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+        <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.0</p>
+    </footer>
+</main>
+
+<div class="lightbox"></div>
+<script src="js/manual.js?v=1"></script>
+</body>
+</html>
