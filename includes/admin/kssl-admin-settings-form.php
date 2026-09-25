@@ -71,7 +71,7 @@ function kssl_display_settings_form() {
                     $current_limit = intval(kssl_get_option(KSSL_MAX_CHART_RECORDS_OPTION_KEY, KSSL_DEFAULT_CHART_LIMIT));
                     global $wpdb;
                     $table_name = kssl_get_log_table_name_func();
-                    $total_logs = kssl_safe_db_query("SELECT COUNT(id) FROM {$table_name}", [], 'get_var', 0);
+                    $total_logs = kssl_count_all_logs() ?? 0;
                     ?>
                     
                     <div class="kssl-chart-limit-container">

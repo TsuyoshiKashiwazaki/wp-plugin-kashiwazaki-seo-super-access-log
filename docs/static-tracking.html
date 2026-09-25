@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>静的ページの計測 - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li class="active"><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>静的ページの計測</h1>
+        <p class="lead">WordPress ではない HTML だけのページ（静的ページ）へのアクセスも、コードを貼り付けるだけで同じログに記録できます。</p>
+
+        <figure class="infographic">
+            <img src="images/infographics/ig-static-tracking.png" alt="静的ページの計測の流れ: 有効化・コードを貼る・訪問・ログに記録">
+            <figcaption>静的ページの計測の流れ</figcaption>
+        </figure>
+
+        <h2>こんなときに使います</h2>
+        <ul>
+            <li>WordPress とは別に、HTML だけで作ったランディングページや特設ページがある</li>
+            <li>サブドメイン（例: <code>lp.example.com</code>）に置いた静的なページのアクセスも、WordPress のログでまとめて見たい</li>
+        </ul>
+
+        <h2>使い方</h2>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p><strong>有効にする</strong><br>「設定」タブの「トラッキング設定」で「<strong>静的HTMLページのトラッキングを有効化</strong>」をオンにして、保存します。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p><strong>コードをコピーする</strong><br>保存すると、その下に「静的HTMLページに貼付するコード例：」が表示されます（保存するまでは表示されません）。枠の中のコードを全部コピーします。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p><strong>静的ページに貼る</strong><br>計測したい HTML ファイルの <code>&lt;/body&gt;</code> タグの直前に貼り付けて、アップロードします。</p></div></div>
+        <div class="step"><span class="step-number">4</span><div class="step-content"><p><strong>記録を確かめる</strong><br>そのページを開いてから、メインタブの絞り込みで「ソース」を「静的ページ」にすると、記録が表示されます。</p></div></div>
+
+        <figure class="screenshot">
+            <img src="images/screenshots/66-settings-tracking.png" alt="静的ページトラッキングを有効にした状態と、貼り付け用のコード" class="lightbox-trigger">
+            <figcaption>有効にして保存すると、貼り付け用のコードが表示されます（URL は例に置き換えています）</figcaption>
+        </figure>
+
+        <h2>記録される内容</h2>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>ページ</td><td>開かれたページの URL（一覧の Request Path に URL 全体が表示されます）</td></tr>
+                <tr><td>参照元・ブラウザ</td><td>ページを開いたブラウザが知っている参照元と User-Agent</td></tr>
+                <tr><td>訪問者 ID・訪問タイプ</td><td>WordPress のページと同じしくみで決まります。同じ訪問者なら、WordPress のページと静的ページで同じ訪問者 ID になります（同じドメインのとき）。</td></tr>
+                <tr><td>ソース</td><td>「静的ページ」（一覧では Static）</td></tr>
+                <tr><td>ボットの判定・国・ブロック</td><td>WordPress のページと同じです。ブロックした訪問者の記録は受け付けません。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>使える範囲と注意点</h2>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>受け付けるページ</td><td>WordPress のサイトと同じドメイン（www の有無を含む）と、そのサブドメインのページだけです。ほかのドメインのページにコードを貼っても記録されません。</td></tr>
+                <tr><td>JavaScript が必要</td><td>コードは訪問者のブラウザで動くので、JavaScript を止めているブラウザや、JavaScript を実行しないボットのアクセスは記録されません。そのため、静的ページのボットの数は少なめに出ます。</td></tr>
+                <tr><td>ページのタイトル</td><td>コードはページのタイトルも送りますが、保存はしません。</td></tr>
+                <tr><td>無効にしたとき</td><td>設定をオフにすると、記録を受け付けなくなります。貼ったコードはそのままでも動作に害はありませんが、不要なら外してください。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-tip">
+            <div class="callout-title">おすすめ</div>
+            <p>コードは、サイトの URL が入った状態で表示されます。サイトの URL を変えたとき（http から https への変更など）は、表示されたコードをコピーし直して、静的ページに貼り直してください。</p>
+        </div>
+
+        <nav class="page-nav">
+            <a href="settings-filter-block.html" class="prev">&laquo; 設定：ログフィルタとブロック</a>
+            <a href="log-management.html" class="next">データベースとキャッシュ &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

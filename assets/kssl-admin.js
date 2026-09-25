@@ -44,6 +44,17 @@ jQuery(document).ready(function($) {
         }
     });
 
+    // Values from the log (user agent, referrer host, country, ...) and from the server are text:
+    // escape them before building HTML strings.
+    function ksslEscapeHtml(value) {
+        return String(value === null || value === undefined ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     // デバウンス関数を追加（連続的な呼び出しを制限）
     function debounce(func, wait) {
         var timeout;
@@ -91,8 +102,8 @@ jQuery(document).ready(function($) {
 
             // チャートが無効の場合
             if (chartData.disabled) {
-                chartContainer.html('<div style="text-align: center; color: #666; padding: 40px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 5px;"><p><strong>Chart Disabled</strong></p><p>' + (chartData.message || 'Chart is disabled for performance reasons.') + '</p></div>');
-                detailsContainer.html('<h4>' + chartData.title + '</h4><p style="color: #666;">' + (chartData.message || 'Chart is disabled for performance reasons.') + '</p>');
+                chartContainer.html('<div style="text-align: center; color: #666; padding: 40px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 5px;"><p><strong>Chart Disabled</strong></p><p>' + ksslEscapeHtml(chartData.message || 'Chart is disabled for performance reasons.') + '</p></div>');
+                detailsContainer.html('<h4>' + ksslEscapeHtml(chartData.title) + '</h4><p style="color: #666;">' + ksslEscapeHtml(chartData.message || 'Chart is disabled for performance reasons.') + '</p>');
                 renderingChart = false;
                 return;
             }
@@ -101,7 +112,7 @@ jQuery(document).ready(function($) {
             if (typeof Chart === 'undefined') {
                 var errorMsg = '<p style="color: #d63638; padding: 20px; text-align: center;">❌ Chart.jsのロードに失敗しました。ページをリロードしてください。</p>';
                 chartContainer.html(errorMsg);
-                detailsContainer.html('<h4>' + chartData.title + '</h4>' + errorMsg);
+                detailsContainer.html('<h4>' + ksslEscapeHtml(chartData.title) + '</h4>' + errorMsg);
                 renderingChart = false;
                 return;
             }
@@ -110,7 +121,7 @@ jQuery(document).ready(function($) {
             if (!chartData.labels || chartData.labels.length === 0 || !chartData.data || chartData.data.reduce((a, b) => a + b, 0) === 0) {
                 var noDataMsg = '<p style="color: #666; padding: 20px; text-align: center;">📊 現在のフィルター条件ではデータがありません。<br>フィルターを変更するか、「すべて」を選択してください。</p>';
                 chartContainer.html(noDataMsg);
-                detailsContainer.html('<h4>' + chartData.title + '</h4>' + noDataMsg);
+                detailsContainer.html('<h4>' + ksslEscapeHtml(chartData.title) + '</h4>' + noDataMsg);
                 renderingChart = false;
                 return;
             }
@@ -126,7 +137,7 @@ jQuery(document).ready(function($) {
 
             // 詳細リストを非同期で生成
             setTimeout(function() {
-                var detailsHtml = '<h4>' + chartData.title + '</h4>';
+                var detailsHtml = '<h4>' + ksslEscapeHtml(chartData.title) + '</h4>';
                 if (chartData.list && chartData.list.length > 0) {
                     // DocumentFragmentを使用してDOM操作を最適化
                     var fragment = document.createDocumentFragment();
@@ -140,8 +151,8 @@ jQuery(document).ready(function($) {
                         var item = chartData.list[i];
                         var percentage = chartData.total > 0 ? ((item.count / chartData.total) * 100).toFixed(1) : '0.0';
                         detailsHtml += '<li>';
-                        detailsHtml += '<div class="kssl-ua-list-item-stats"><strong>' + item.count.toLocaleString() + '</strong> (' + percentage + '%)</div>';
-                        detailsHtml += '<div class="kssl-ua-list-item-ua" title="' + (item.item || '').replace(/"/g, '&quot;') + '">' + (item.item || '') + '</div>';
+                        detailsHtml += '<div class="kssl-ua-list-item-stats"><strong>' + ksslEscapeHtml(Number(item.count).toLocaleString()) + '</strong> (' + ksslEscapeHtml(percentage) + '%)</div>';
+                        detailsHtml += '<div class="kssl-ua-list-item-ua" title="' + ksslEscapeHtml(item.item) + '">' + ksslEscapeHtml(item.item) + '</div>';
                         detailsHtml += '</li>';
                     }
 
@@ -157,7 +168,7 @@ jQuery(document).ready(function($) {
                 // 注意メッセージがあれば表示
                 if (chartData.notice && chartData.notice.length > 0) {
                     detailsHtml += '<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-top: 15px; color: #856404;">';
-                    detailsHtml += '<strong>📌 お知らせ:</strong> ' + chartData.notice;
+                    detailsHtml += '<strong>📌 お知らせ:</strong> ' + ksslEscapeHtml(chartData.notice);
                     detailsHtml += '</div>';
                 }
 
@@ -610,7 +621,7 @@ jQuery(document).ready(function($) {
                     // ポーリング開始
                     pollOptimizeStatus(response.data.job_id, $resultDiv, $button);
                 } else {
-                    $resultDiv.show().html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px;"><strong>✗ 最適化エラー!</strong><br>' + (response.data.message || '最適化の開始に失敗しました') + '</div>');
+                    $resultDiv.show().html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px;"><strong>✗ 最適化エラー!</strong><br>' + ksslEscapeHtml(response.data.message || '最適化の開始に失敗しました') + '</div>');
                     $button.prop('disabled', false).text('今すぐデータベースを最適化');
                 }
             },
@@ -643,23 +654,23 @@ jQuery(document).ready(function($) {
                         if (status.status === 'processing' || status.status === 'pending') {
                             // 進行中
                             $button.html('<span class="kssl-spinner"></span> 最適化中<span class="kssl-dots"></span>');
-                            $resultDiv.html('<div style="border: 1px solid #0073aa; background: #e6f3ff; padding: 10px; border-radius: 4px;"><span class="kssl-spinner"></span> <strong>バックグラウンド処理実行中:</strong> ' + status.message + '<span class="kssl-dots"></span><br>進行状況: ' + status.progress + '%<br><em style="color: #666; font-size: 0.9em;">※ 処理は継続しています。しばらくお待ちください。</em></div>');
+                            $resultDiv.html('<div style="border: 1px solid #0073aa; background: #e6f3ff; padding: 10px; border-radius: 4px;"><span class="kssl-spinner"></span> <strong>バックグラウンド処理実行中:</strong> ' + ksslEscapeHtml(status.message) + '<span class="kssl-dots"></span><br>進行状況: ' + status.progress + '%<br><em style="color: #666; font-size: 0.9em;">※ 処理は継続しています。しばらくお待ちください。</em></div>');
                         } else if (status.status === 'completed') {
                             // 完了
                             clearInterval(optimizePollInterval);
 
                             var detailsHtml = '';
                             if (status.total_records) {
-                                detailsHtml += '<br>レコード数: ' + status.total_records;
+                                detailsHtml += '<br>レコード数: ' + ksslEscapeHtml(status.total_records);
                             }
                             if (status.table_size) {
-                                detailsHtml += '<br>テーブルサイズ: ' + status.table_size;
+                                detailsHtml += '<br>テーブルサイズ: ' + ksslEscapeHtml(status.table_size);
                             }
                             if (status.index_count) {
-                                detailsHtml += '<br>インデックス数: ' + status.index_count;
+                                detailsHtml += '<br>インデックス数: ' + ksslEscapeHtml(status.index_count);
                             }
 
-                            $resultDiv.html('<div style="color: green; border: 1px solid #0073aa; background: #e6f3ff; padding: 10px; border-radius: 4px;"><strong>✓ 最適化完了!</strong><br>' + status.message + detailsHtml + '<br><br>ページを更新します...</div>');
+                            $resultDiv.html('<div style="color: green; border: 1px solid #0073aa; background: #e6f3ff; padding: 10px; border-radius: 4px;"><strong>✓ 最適化完了!</strong><br>' + ksslEscapeHtml(status.message) + detailsHtml + '<br><br>ページを更新します...</div>');
                             $button.prop('disabled', false).text('今すぐデータベースを最適化');
 
                             // ページをリロード
@@ -669,7 +680,7 @@ jQuery(document).ready(function($) {
                         } else if (status.status === 'error') {
                             // エラー
                             clearInterval(optimizePollInterval);
-                            $resultDiv.html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px;"><strong>✗ 最適化エラー!</strong><br>' + status.message + '</div>');
+                            $resultDiv.html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px;"><strong>✗ 最適化エラー!</strong><br>' + ksslEscapeHtml(status.message) + '</div>');
                             $button.prop('disabled', false).text('今すぐデータベースを最適化');
                         }
                     }
@@ -749,7 +760,7 @@ jQuery(document).ready(function($) {
                     // ポーリング開始
                     pollExportStatus(response.data.job_id, $progressBar, $status, $button);
                 } else {
-                    $status.html('<span style="color: red;">エクスポート開始に失敗しました: ' + (response.data.message || 'Unknown error') + '</span>');
+                    $status.html('<span style="color: red;">エクスポート開始に失敗しました: ' + ksslEscapeHtml(response.data.message || 'Unknown error') + '</span>');
                     $button.prop('disabled', false).text('📥 CSVファイルをダウンロード');
                     exportInProgress = false;
                 }
@@ -805,7 +816,7 @@ jQuery(document).ready(function($) {
                             clearInterval(exportPollInterval);
                             exportInProgress = false;
                             $progressBar.css('width', '100%').css('background', '#dc3232');
-                            $status.html('<span style="color: red;">✗ エクスポートエラー: ' + status.message + '</span>');
+                            $status.html('<span style="color: red;">✗ エクスポートエラー: ' + ksslEscapeHtml(status.message) + '</span>');
                             $button.prop('disabled', false).text('📥 CSVファイルをダウンロード');
                         }
                     }
@@ -842,12 +853,12 @@ jQuery(document).ready(function($) {
 
                         files.forEach(function(file) {
                             html += '<tr>';
-                            html += '<td><strong>' + file.name + '</strong></td>';
-                            html += '<td>' + file.size_formatted + '</td>';
-                            html += '<td>' + file.date + '</td>';
+                            html += '<td><strong>' + ksslEscapeHtml(file.name) + '</strong></td>';
+                            html += '<td>' + ksslEscapeHtml(file.size_formatted) + '</td>';
+                            html += '<td>' + ksslEscapeHtml(file.date) + '</td>';
                             html += '<td>';
-                            html += '<a href="' + file.download_url + '" class="button button-small button-primary" style="margin-right: 5px;">📥 ダウンロード</a>';
-                            html += '<button class="button button-small kssl-delete-export-file" data-filename="' + file.name + '">🗑️  削除</button>';
+                            html += '<a href="' + ksslEscapeHtml(file.download_url) + '" class="button button-small button-primary" style="margin-right: 5px;">📥 ダウンロード</a>';
+                            html += '<button class="button button-small kssl-delete-export-file" data-filename="' + ksslEscapeHtml(file.name) + '">🗑️  削除</button>';
                             html += '</td>';
                             html += '</tr>';
                         });
@@ -932,7 +943,7 @@ jQuery(document).ready(function($) {
                     response.data.files.forEach(function(file) {
                         var sizeInMB = (file.size / 1024 / 1024).toFixed(2);
                         var optionText = file.name + ' (' + sizeInMB + ' MB)';
-                        options += '<option value="' + file.path + '" data-size="' + sizeInMB + '">' + optionText + '</option>';
+                        options += '<option value="' + ksslEscapeHtml(file.path) + '" data-size="' + ksslEscapeHtml(sizeInMB) + '">' + ksslEscapeHtml(optionText) + '</option>';
                     });
                     $select.html(options).prop('disabled', false);
 
@@ -1074,7 +1085,7 @@ jQuery(document).ready(function($) {
 
                         // ステータスを更新
                         if (data.message) {
-                            var statusHtml = '<span class="kssl-spinner"></span> <strong>バックグラウンド処理実行中:</strong> ' + data.message + '<span class="kssl-dots"></span>';
+                            var statusHtml = '<span class="kssl-spinner"></span> <strong>バックグラウンド処理実行中:</strong> ' + ksslEscapeHtml(data.message) + '<span class="kssl-dots"></span>';
 
                             // 詳細な進捗情報を表示
                             if (data.total_lines && data.processed_lines !== undefined) {
@@ -1098,7 +1109,7 @@ jQuery(document).ready(function($) {
                             $progressBar.css('width', '100%');
                             $status.html('<span style="color: green;">✓ インポート完了</span>');
 
-                            var resultMessage = data.message || 'インポートが完了しました';
+                            var resultMessage = ksslEscapeHtml(data.message || 'インポートが完了しました');
                             if (data.imported_count !== undefined) {
                                 resultMessage += '<br><br>インポート件数: ' + data.imported_count + '件';
                                 if (data.skipped_count > 0) {
@@ -1127,7 +1138,7 @@ jQuery(document).ready(function($) {
                             clearInterval(pollInterval);
                             $progressBar.css('width', '100%').css('background', '#dc3232');
                             $status.html('<span style="color: red;">✗ インポート失敗</span>');
-                            $resultDiv.html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px; white-space: pre-line;"><strong>' + (data.message || 'インポートに失敗しました') + '</strong></div>').show();
+                            $resultDiv.html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px; white-space: pre-line;"><strong>' + ksslEscapeHtml(data.message || 'インポートに失敗しました') + '</strong></div>').show();
                             $button.prop('disabled', false).text('📤 CSVをインポート');
                         }
                     } else {
@@ -1196,7 +1207,7 @@ jQuery(document).ready(function($) {
                     } else {
                         // エラー
                         $status.html('<span style="color: red;">✗ インポート失敗</span>');
-                        $resultDiv.html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px; white-space: pre-line;"><strong>' + (response.data ? response.data.message : 'インポート開始に失敗しました') + '</strong></div>').show();
+                        $resultDiv.html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px; white-space: pre-line;"><strong>' + ksslEscapeHtml(response.data ? response.data.message : 'インポート開始に失敗しました') + '</strong></div>').show();
                         $button.prop('disabled', false).text('📤 CSVをインポート');
                     }
                 },
@@ -1250,7 +1261,7 @@ jQuery(document).ready(function($) {
                         // エラー
                         console.error('[Import Upload] Error - no job_id in response:', response);
                         $status.html('<span style="color: red;">✗ インポート失敗</span>');
-                        $resultDiv.html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px; white-space: pre-line;"><strong>' + (response.data ? response.data.message : 'インポート開始に失敗しました') + '</strong></div>').show();
+                        $resultDiv.html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px; white-space: pre-line;"><strong>' + ksslEscapeHtml(response.data ? response.data.message : 'インポート開始に失敗しました') + '</strong></div>').show();
                         $button.prop('disabled', false).text('📤 CSVをインポート');
                     }
                 },

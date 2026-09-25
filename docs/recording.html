@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記録のルール - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li class="active"><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>記録のルール</h1>
+        <p class="lead">どのアクセスが記録され、どれが記録されないのか。訪問タイプ・国・IP アドレスがどう決まるのか。数字を正しく読むための前提をまとめます。</p>
+
+        <figure class="infographic">
+            <img src="images/infographics/ig-recording-rules.png" alt="記録されるもの・されないもの">
+            <figcaption>記録されるもの・されないもの</figcaption>
+        </figure>
+
+        <h2>記録されるアクセス</h2>
+        <ul>
+            <li>WordPress の公開ページ（記事・固定ページ・トップページ・アーカイブ・404 のページなど）の閲覧</li>
+            <li>ログインしている人の閲覧（ユーザー ID 付きで記録します。管理者自身の閲覧も記録されます）</li>
+            <li>ボットの閲覧（「Is Bot?」が Yes で記録します）</li>
+            <li>静的ページの計測を使っているページの閲覧（→ <a href="static-tracking.html">静的ページの計測</a>）</li>
+        </ul>
+        <p>記録は、ページを返し終えた後にサーバー側で行います。</p>
+
+        <h2 id="not-recorded">記録されないアクセス</h2>
+        <table>
+            <thead><tr><th style="width:35%;">アクセス</th><th>理由・変え方</th></tr></thead>
+            <tbody>
+                <tr><td>WordPress の管理画面</td><td>サイトの訪問ではないため記録しません。</td></tr>
+                <tr><td>画像・CSS・JavaScript・フォントなどのファイル</td><td>ページの部品なので記録しません。設定の「静的ファイルを除外」とそのパターンで決まります。オフにしても、主な画像・CSS・JavaScript・フォントは記録しません。→ <a href="settings-filter-block.html#static-files">静的ファイルを除外</a></td></tr>
+                <tr><td>「ログ除外URIパターン」に一致するページ</td><td>設定で決めたパターンを含むページは記録しません。→ <a href="settings-filter-block.html#excluded-uri">ログ除外URIパターン</a></td></tr>
+                <tr><td>サーバー自身からのアクセス</td><td>設定の「自サーバーIPからのアクセス除外」がオン（初期値）のとき。→ <a href="settings-basic.html#exclude-self">アクセス除外設定</a></td></tr>
+                <tr><td>ボットのアクセスで 404 になったもの</td><td>存在しない URL を試すボットの記録で、ログが埋まらないようにしています。</td></tr>
+                <tr><td>User-Agent が空のアクセス</td><td>記録しません。アクセス自体を拒否することもできます。→ <a href="settings-filter-block.html#empty-ua">User-Agentが空のアクセス</a></td></tr>
+                <tr><td>WordPress の裏の通信（REST API・管理画面の非同期通信・定期処理）</td><td>ページの閲覧ではないため記録しません。開発者向けの設定で記録させることもできます。</td></tr>
+                <tr><td>先読み・プレビューのための通信、ヘッダーだけを確かめる通信</td><td>ブラウザや検索エンジンの先読みなど、人が見たわけではない通信です。</td></tr>
+                <tr><td>ブロックしたアクセス</td><td>ブロックの画面を返し、記録はしません。</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="visit-type">訪問タイプの決まり方</h2>
+        <figure class="infographic">
+            <img src="images/infographics/ig-visit-types.png" alt="訪問タイプの決まり方の分岐図">
+            <figcaption>訪問タイプは、訪問の記録（Cookie）と参照元で決まります</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:40%;">条件</th><th style="width:20%;">訪問タイプ</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>訪問の記録（Cookie）がない、または読めない</td><td>新規</td><td>初めて来た訪問者、または Cookie の有効期限が切れた訪問者</td></tr>
+                <tr><td>Cookie があり、このサイトのページから来た</td><td>ページ遷移</td><td>サイトの中でページを移動した</td></tr>
+                <tr><td>Cookie があり、ほかのサイトから来た、または参照元がない</td><td>リピーター</td><td>検索やブックマークなどから、もう一度来た</td></tr>
+            </tbody>
+        </table>
+        <ul>
+            <li>Cookie の有効期限は、設定の「Cookie有効期限（時間）」で決まります（初期値 24 時間）。期限を過ぎて来た人は「新規」になります。→ <a href="settings-basic.html#cookie">Cookie設定</a></li>
+            <li>「不明」は、主に CSV から取り込んだ記録で、訪問タイプの列がなかったものです。</li>
+            <li>参照元の「このサイト」は、www の有無を同じサイトとして扱います。</li>
+        </ul>
+
+        <h2 id="visitor-id">訪問者 ID と Cookie</h2>
+        <p>訪問者を見分けるため、訪問者のブラウザに Cookie を 1 つ保存します。プライバシーポリシーや Cookie の同意の表示に書くときは、次の内容を参考にしてください。</p>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>Cookie の名前</td><td><code>kssl_visitor_tracker_KSSLID</code></td></tr>
+                <tr><td>保存する内容</td><td>ランダムに作った訪問者 ID と、初回・最後の訪問の日時</td></tr>
+                <tr><td>有効期限</td><td>設定の「Cookie有効期限（時間）」（初期値 24 時間）</td></tr>
+                <tr><td>性質</td><td>ページの JavaScript からは読めない設定で、HTTPS のサイトでは暗号化された通信でだけ送られます</td></tr>
+                <tr><td>目的</td><td>同じ訪問者の再訪問・ページの移動を見分けるため（訪問タイプとユニーク訪問者数）</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="ip">IP アドレス</h2>
+        <p>アクセス元の IP アドレスを記録します。Cloudflare を経由するサイトや、サーバーの前にプロキシ（中継サーバー）があるサイトでも、中継サーバーではなく訪問者の IP アドレスを記録します。訪問者が送ってくる情報を無条件には信用しないので、訪問者が IP アドレスを偽って記録させることはできません。</p>
+        <div class="callout callout-note">
+            <div class="callout-title">補足</div>
+            <p>社内のネットワークや同じサーバーの中からのアクセスは、プライベートな IP アドレス（国は「LAN」）で記録されます。特殊な中継サーバーの構成で訪問者の IP アドレスが正しく記録されないときは、開発者向けの設定で中継サーバーを追加できます。</p>
+        </div>
+
+        <h2 id="country">国の決まり方</h2>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p><strong>ブラウザの言語設定から推定します</strong>（常に行います）。たとえば日本語（ja）のブラウザなら JP です。そのため、国の数字は「住んでいる国」ではなく「使っている言語」に近くなります。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p><strong>言語から分からないとき、IP アドレスから調べます</strong>（設定の「IPアドレスから国コードを推定」がオンのときだけ）。外部の IP 位置情報サービス（ip-api.com）に訪問者の IP アドレスを送って調べ、結果を 7 日間覚えておきます。ボットには使いません。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>社内のネットワークなどのプライベートな IP アドレスは「LAN」、分からないときは空（一覧では「–」）です。</p></div></div>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>IP アドレスから調べる設定をオンにすると、訪問者の IP アドレスが外部のサービスに、暗号化されない通信で送られます。プライバシーポリシーへの記載を検討してください。</p>
+        </div>
+
+        <h2 id="bot">ボットの判定</h2>
+        <p>User-Agent（ブラウザやボットの名前）が、設定の「ボット検出パターン」に当てはまるとボットと判定します。初期値には、検索エンジン（Googlebot、bingbot など）、SEO ツール（AhrefsBot、SemrushBot など）、AI のクローラー（GPTBot、ClaudeBot、PerplexityBot など）の名前が入っています。パターンを変えると、それ以降に記録するアクセスから新しい判定になります。すでに記録したログの判定は変わりません。→ <a href="settings-filter-block.html#bot-pattern">ボット検出パターン</a></p>
+
+        <h2 id="suspicious">疑わしいアクセス</h2>
+        <p>設定の「疑わしいキーワード」を、ページの URL か User-Agent に含むアクセスです（攻撃の試みやスキャナーに多い文字列）。アクセス自体は拒否しません。</p>
+        <table>
+            <thead><tr><th style="width:35%;">場所</th><th>「疑わしい」の基準</th></tr></thead>
+            <tbody>
+                <tr><td>一覧・合計・グラフから除く（初期状態）</td><td>URL か User-Agent にキーワードを含む</td></tr>
+                <tr><td>一覧の赤い印（⚠）</td><td>URL にキーワードを含む、または応答の番号が 400 以上（ボットの 404 は除く）</td></tr>
+                <tr><td>削除の「疑わしいアクセスのみ削除」、エクスポートの「疑わしいアクセスのみ」</td><td>URL にキーワードを含む</td></tr>
+            </tbody>
+        </table>
+        <p>キーワードを変えると、すでに記録したログの判定も裏で自動的にやり直します。</p>
+
+        <nav class="page-nav">
+            <a href="log-table.html" class="prev">&laquo; ログ一覧とブロック</a>
+            <a href="settings-basic.html" class="next">設定：表示と記録 &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログ一覧とブロック - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li class="active"><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>ログ一覧とブロック</h1>
+        <p class="lead">アクセスを 1 件ずつ表示する一覧表の各列の意味、並べ替え、ページ送り、そして一覧から訪問者をブロックする方法を説明します。</p>
+
+        <figure class="screenshot">
+            <img src="images/screenshots/17-main-log-table.png" alt="ログ一覧表" class="lightbox-trigger">
+            <figcaption>ログ一覧（IP アドレス・訪問者 ID・参照元は、このマニュアルでは例に置き換えています）</figcaption>
+        </figure>
+
+        <h2>列の意味</h2>
+        <p>表示する列は、設定タブの「表示カラム」で選べます。→ <a href="settings-basic.html#columns">表示カラム</a></p>
+        <table>
+            <thead><tr><th style="width:18%;">列</th><th style="width:12%;">並べ替え</th><th>表示される内容</th></tr></thead>
+            <tbody>
+                <tr><td>ID</td><td>できる</td><td>記録の通し番号です。</td></tr>
+                <tr><td>Time</td><td>できる</td><td>アクセスの日時です。絞り込みの「表示タイムゾーン」で表示します。初期状態はこの列の新しい順です。</td></tr>
+                <tr><td>Visitor ID (Cookie)</td><td>できる</td><td>訪問者 ID です。先頭の 36 文字まで表示し、マウスを乗せると全体を表示します。下に「Block」または「Unblock」のリンクがあります（このページの下で説明）。</td></tr>
+                <tr><td>IP Address</td><td>できる</td><td>アクセス元の IP アドレスです。押すと、その IP アドレスで絞り込みます。</td></tr>
+                <tr><td>Country</td><td>できる</td><td>国旗と国コードです。社内のネットワークなどからのアクセスは「LAN/Private」、分からないときは「–」です。</td></tr>
+                <tr><td>Request Path</td><td>できない</td><td>開かれたページのパスです（70 文字まで）。押すと、そのページを別のタブで開きます。静的ページの記録は URL を表示します。</td></tr>
+                <tr><td>Method</td><td>できない</td><td>リクエストの方式（GET、POST など）です。</td></tr>
+                <tr><td>Status</td><td>できる</td><td>応答の状態を表す番号（200、404 など）です。</td></tr>
+                <tr><td>Referer</td><td>できない</td><td>参照元の URL です（50 文字まで）。押すと別のタブで開きます。ないときは「–」です。</td></tr>
+                <tr><td>User Agent</td><td>できない</td><td>ブラウザやボットの名前です（70 文字まで）。マウスを乗せると全体を表示します。</td></tr>
+                <tr><td>User ID</td><td>できる</td><td>ログインしていたユーザーの ID です。ログインしていなければ「–」です。</td></tr>
+                <tr><td>Is Bot?</td><td>できない</td><td>ボットと判定したら「Yes」、人なら「No」です。</td></tr>
+                <tr><td>Visit Type</td><td>できる</td><td>★ New（新規）、Returning（リピーター）、&gt; Transition（ページ遷移）、Unknown（不明）です。マウスを乗せると説明（New Visitor など）を表示します。</td></tr>
+                <tr><td>Source</td><td>できる</td><td>記録の出どころです。Wordpress（WordPress のページ）、Static（静的ページ）、Import（CSV から取り込んだもの）。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>並べ替え</h2>
+        <p>青い列名を押すと、その列で並べ替えます。</p>
+        <ul>
+            <li>並べ替えていない列を押すと、まず小さい順（古い順）になります。もう一度押すと逆順になります。</li>
+            <li>並べ替えても、今見ているページ番号は変わりません。1 ページ目から見るときは、ページ送りで 1 を押してください。</li>
+            <li>絞り込みの条件は、並べ替えても保たれます。</li>
+        </ul>
+
+        <h2>ページ送り</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/18-main-pagination.png" alt="ページ送り" class="lightbox-trigger">
+            <figcaption>一覧の下のページ送り</figcaption>
+        </figure>
+        <p>1 ページに 10 件ずつ表示します。2 ページ以上あるときだけ、一覧の下に「1-10 of N items」とページ番号が表示されます。画面に 1 ページの件数を変える欄はありません。</p>
+
+        <h2 id="suspicious-mark">疑わしいアクセスの印</h2>
+        <p>左端に赤い縦線と ⚠ の印が付いた行は、疑わしいアクセスです（印にマウスを乗せると「Potentially suspicious access」と表示）。次のどちらかに当てはまると印が付きます。</p>
+        <ul>
+            <li>応答の番号が 400 以上（エラー）。ただし、ボットの 404 は除きます。</li>
+            <li>ページの URL に「疑わしいキーワード」を含む。</li>
+        </ul>
+        <div class="callout callout-note">
+            <div class="callout-title">補足</div>
+            <p>一覧・合計・グラフから除く「疑わしいアクセス」（絞り込みの「疑わしいアクセスを含める」がオフのとき）は、キーワードだけで決まります。そのため、印が付いていても一覧に表示される行（キーワードを含まないエラー）があります。</p>
+        </div>
+
+        <h2 id="block">訪問者のブロックと解除</h2>
+        <p>訪問者 ID の下の「<strong>Block</strong>」（赤・盾のアイコン）を押すと、その訪問者をブロックできます。ブロック中の訪問者の行には、緑の「<strong>Unblock</strong>」（鍵のアイコン）が表示されます。</p>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>「Block」を押すと「この訪問者IDをブロックしてもよろしいですか？ブロックされたユーザーはサイトにアクセスできなくなります。」と確認されます。「OK」を押します。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>元のページに戻ります。成功したことを知らせるメッセージは出ません。その訪問者の行の表示が「Unblock」に変わっていれば、ブロックできています。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>解除するときは「Unblock」を押し、「この訪問者IDのブロックを解除してもよろしいですか？」に「OK」を押します。</p></div></div>
+        <table>
+            <thead><tr><th style="width:30%;">ブロックした後</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>訪問者に見える画面</td><td>サイトを開くと「Access Restricted」という画面が表示され、ページを見られません（Your access to this site has been temporarily restricted due to unusual activity. …）。「Go to Homepage」のリンクがあります。</td></tr>
+                <tr><td>ブロックの範囲</td><td>公開ページ、ログイン画面、静的ページの計測など。WordPress の管理画面そのものは対象外です。</td></tr>
+                <tr><td>一覧の管理</td><td>ブロックした訪問者 ID は、設定タブの「ブロック対象訪問者ID」に並びます。そこで直接追加・削除することもできます。→ <a href="settings-filter-block.html#block-visitor">ブロック対象訪問者ID</a></td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>訪問者 ID は、訪問者のブラウザに保存した Cookie で見分けています。相手が Cookie を消したり、別のブラウザを使ったりすると、新しい訪問者 ID になり、ブロックは効かなくなります。しつこいアクセスは、User-Agent によるブロックや、サーバー側での対策と組み合わせてください。</p>
+        </div>
+
+        <h2>一覧が空のとき</h2>
+        <p>条件に合うログがないと「現在のフィルター条件ではログが見つかりません。」と表示されます。期間を広げるか、条件をゆるめてください。まだ一度も記録されていない場合は「<a href="troubleshooting.html#not-recorded">記録されない</a>」を確認してください。</p>
+
+        <nav class="page-nav">
+            <a href="charts.html" class="prev">&laquo; グラフの見方</a>
+            <a href="recording.html" class="next">記録のルール &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

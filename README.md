@@ -1,15 +1,19 @@
 # Kashiwazaki SEO Super Access Log
 
-![WordPress](https://img.shields.io/badge/WordPress-5.8%2B-blue.svg)
+![WordPress](https://img.shields.io/badge/WordPress-5.9%2B-blue.svg)
 ![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)
 ![License](https://img.shields.io/badge/license-GPLv2%2B-green.svg)
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)
 
 訪問者追跡、ボット検出、CSV入出力、チャート表示、セキュリティ機能を備えたWordPressアクセスログプラグイン
 
 ## 概要
 
 Kashiwazaki SEO Super Access Logは、サイトのトラフィックを詳細に監視したいWordPress管理者のための強力で包括的なツールです。単純なアクセスログ記録を超えて、分析、セキュリティ、追跡、データ可視化、エンタープライズグレードのパフォーマンス最適化のための高度な機能を提供します。
+
+## マニュアル
+
+画面の全項目の説明、設定の詳細、困ったときの対処は、[オンラインマニュアル](https://tsuyoshikashiwazaki.github.io/wp-plugin-kashiwazaki-seo-super-access-log/)を参照してください。
 
 ## 主要機能
 
@@ -58,7 +62,7 @@ Kashiwazaki SEO Super Access Logは、サイトのトラフィックを詳細に
 
 ## 動作要件
 
-- WordPress 5.8以上
+- WordPress 5.9以上
 - PHP 7.4以上
 - MySQL 5.7以上 または MariaDB 10.2以上
 
@@ -107,6 +111,4 @@ GPLv2 or later
 
 ## 更新履歴
 
-### [1.0.0] - 2025-11-09
-- 初回リリース
-- 全機能実装
+[CHANGELOG.md](CHANGELOG.md) を参照してください。

@@ -6,6 +6,8 @@ add_action( 'admin_menu', 'kssl_admin_menu_func_hook' );
 add_action( 'admin_enqueue_scripts', 'kssl_admin_scripts_func_hook' );
 add_action( 'admin_post_kssl_toggle_visitor_block', 'kssl_handle_toggle_visitor_block_action' );
 add_action( 'admin_post_kssl_export_logs', 'kssl_handle_export_logs_action' );
+add_action( 'admin_post_kssl_migration_start', 'kssl_handle_migration_start_action' );
+add_action( 'admin_post_kssl_migration_resume', 'kssl_handle_migration_resume_action' );
 add_action( 'wp_ajax_kssl_test_log_recording', 'kssl_handle_test_log_recording_ajax' );
 
 // CSV Import/Export AJAX handlers
@@ -22,6 +24,7 @@ add_action( 'wp_ajax_kssl_delete_export', 'kssl_delete_export_ajax' );
 
 // Background export WP-Cron handler
 add_action( 'kssl_process_export_job', 'kssl_process_export_job_cron', 10, 2 );
+add_action( 'kssl_export_job_step', [ 'KSSL_CSV_Handler', 'process_export_job_step' ] );
 
 // Log deletion AJAX handlers
 add_action( 'wp_ajax_kssl_get_log_count', 'kssl_handle_get_log_count_ajax' );
@@ -608,14 +611,18 @@ function kssl_handle_export_logs_action() {
     set_time_limit(0);
 
     $limit = 1000;
-    $offset = 0;
+    $last_id = 0;
+    // Upper id fixed at start: rows logged during the download are not chased.
+    $upper_id = (int) $wpdb->get_var("SELECT COALESCE(MAX(id), 0) FROM {$table_name}");
 
     while (true) {
+        // Keyset pagination (id > last_id) instead of OFFSET, which rescans skipped rows
         $results = $wpdb->get_results(
             $wpdb->prepare(
-                "SELECT * FROM {$table_name} ORDER BY id ASC LIMIT %d OFFSET %d",
-                $limit,
-                $offset
+                "SELECT * FROM {$table_name} WHERE id > %d AND id <= %d ORDER BY id ASC LIMIT %d",
+                $last_id,
+                $upper_id,
+                $limit
             ),
             ARRAY_A
         );
@@ -636,7 +643,7 @@ function kssl_handle_export_logs_action() {
             break;
         }
 
-        $offset += $limit;
+        $last_id = (int) end($results)['id'];
     }
 
     fclose($handle);
@@ -687,6 +694,11 @@ function kssl_handle_csv_export_ajax() {
 
     if (!current_user_can('manage_options')) {
         wp_send_json_error(['message' => 'Insufficient permissions.']);
+        return;
+    }
+
+    if (kssl_migration_export_should_wait()) {
+        wp_send_json_error(['message' => __('テーブル移行の仕上げ中です。完了後にもう一度エクスポートしてください。', 'kashiwazaki-seo-super-access-log')]);
         return;
     }
 
@@ -911,29 +923,67 @@ function kssl_process_export_job_cron($job_id, $filters) {
  * WP-Cronコールバック：バックグラウンドインポート処理
  */
 function kssl_process_import_job_cron($job_id, $temp_file, $options) {
+    $job_id = (string) $job_id;
+    set_transient('kssl_import_job_' . $job_id, [
+        'file' => $temp_file,
+        'options' => is_array($options) ? $options : [],
+    ], DAY_IN_SECONDS);
+    set_transient('kssl_import_status_' . $job_id, [
+        'status' => 'processing',
+        'message' => 'インポート処理を開始しました...',
+        'progress' => 0,
+        'total_lines' => 0,
+        'processed_lines' => 0,
+        'imported_count' => 0
+    ], 3600);
+    kssl_import_job_step($job_id);
+}
+
+/**
+ * One bounded import step (20 s). The next step is scheduled first, so a step killed by the PHP
+ * time limit is resumed from the saved file position; one step per job runs at a time.
+ */
+function kssl_import_job_step($job_id) {
+    $job_id = (string) $job_id;
+    $job = get_transient('kssl_import_job_' . $job_id);
+    if (!is_array($job)) {
+        wp_clear_scheduled_hook('kssl_import_job_step', [$job_id]);
+        // The job expired: its uploaded copy (named after the job id) is no longer needed.
+        if (preg_match('/^import_\d+_[A-Za-z0-9]+$/', $job_id)) {
+            $orphan = kssl_private_dir('temp') . '/' . $job_id . '.csv';
+            if (kssl_is_import_temp_file($orphan)) {
+                @unlink($orphan);
+            }
+        }
+        kssl_cleanup_import_temp_files();
+        return;
+    }
+    kssl_schedule_once('kssl_import_job_step', 60, [$job_id]);
+    $mutex = 'kssl_import_running_' . md5($job_id);
+    if (!kssl_job_mutex_acquire($mutex)) {
+        return;
+    }
+    $temp_file = $job['file'];
+    $state_key = 'kssl_import_state_' . $job_id;
+    $state = get_transient($state_key);
+    $finish = function ($status) use ($job_id, $temp_file, $state_key) {
+        wp_clear_scheduled_hook('kssl_import_job_step', [$job_id]);
+        delete_transient($state_key);
+        delete_transient('kssl_import_job_' . $job_id);
+        // Only the upload's temporary copy is removed; an existing export file imported from the
+        // list is the user's file and is kept.
+        if (kssl_is_import_temp_file($temp_file)) {
+            @unlink($temp_file);
+        }
+        set_transient('kssl_import_status_' . $job_id, $status, 3600);
+    };
     try {
-        // 進捗を更新
-        set_transient('kssl_import_status_' . $job_id, [
-            'status' => 'processing',
-            'message' => 'インポート処理を開始しました...',
-            'progress' => 0,
-            'total_lines' => 0,
-            'processed_lines' => 0,
-            'imported_count' => 0
-        ], 3600);
-    // Force flush transient to database
-    wp_cache_flush();
-    
-
-
-        // 進捗コールバック関数
         $progress_callback = function($progress_data) use ($job_id) {
             set_transient('kssl_import_status_' . $job_id, [
                 'status' => 'processing',
                 'message' => sprintf(
-                    '%d / %d 行を処理中 (%d件インポート済み)',
+                    '%d 行を処理済み (%d件インポート済み)',
                     $progress_data['processed_lines'],
-                    $progress_data['total_lines'],
                     $progress_data['imported_count']
                 ),
                 'progress' => $progress_data['progress'],
@@ -945,41 +995,47 @@ function kssl_process_import_job_cron($job_id, $temp_file, $options) {
             ], 3600);
         };
 
-        // オプションに進捗コールバックを追加
-        $options['progress_callback'] = $progress_callback;
+        $step_options = $job['options'];
+        $step_options['progress_callback'] = $progress_callback;
+        $step_options['time_budget'] = (float) apply_filters('kssl_import_step_seconds', 20);
+        $step_options['state'] = $state === false ? null : $state;
+        $result = KSSL_CSV_Handler::import_csv($temp_file, $step_options);
 
-        // インポート実行
-        $result = KSSL_CSV_Handler::import_csv($temp_file, $options);
+        if (!empty($result['success']) && empty($result['done'])) {
+            set_transient($state_key, $result['state'], DAY_IN_SECONDS);
+            // Continue right away (replaces the 60 s safety event registered above).
+            wp_clear_scheduled_hook('kssl_import_job_step', [$job_id]);
+            wp_schedule_single_event(time(), 'kssl_import_job_step', [$job_id]);
+            return;
+        }
 
-        // 一時ファイルを削除
-        @unlink($temp_file);
-
-        // 結果を保存
         if ($result['success']) {
-            set_transient('kssl_import_status_' . $job_id, [
+            $finish([
                 'status' => 'completed',
                 'message' => $result['message'],
                 'imported_count' => isset($result['imported_count']) ? $result['imported_count'] : 0,
                 'skipped_count' => isset($result['skipped_count']) ? $result['skipped_count'] : 0,
                 'error_count' => isset($result['error_count']) ? $result['error_count'] : 0,
                 'progress' => 100
-            ], 3600);
+            ]);
         } else {
-            set_transient('kssl_import_status_' . $job_id, [
+            $finish([
                 'status' => 'error',
                 'message' => $result['message'],
                 'progress' => 0
-            ], 3600);
+            ]);
         }
     } catch (Exception $e) {
-        @unlink($temp_file);
-        set_transient('kssl_import_status_' . $job_id, [
+        $finish([
             'status' => 'error',
             'message' => 'エラー: ' . $e->getMessage(),
             'progress' => 0
-        ], 3600);
+        ]);
+    } finally {
+        kssl_job_mutex_release($mutex);
     }
 }
+add_action('kssl_import_job_step', 'kssl_import_job_step');
 add_action('kssl_process_import_job', 'kssl_process_import_job_cron', 10, 3);
 
 /**
@@ -1031,6 +1087,11 @@ function kssl_handle_csv_import_ajax() {
         return;
     }
 
+    if (kssl_migration_blocks_writes()) {
+        wp_send_json_error(['message' => kssl_migration_block_message()]);
+        return;
+    }
+
     if (!isset($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
         wp_send_json_error(['message' => __('File upload failed.', 'kashiwazaki-seo-super-access-log')]);
         return;
@@ -1062,11 +1123,11 @@ function kssl_handle_csv_import_ajax() {
     // ジョブIDを生成
     $job_id = 'import_' . time() . '_' . wp_generate_password(8, false);
 
-    // ファイルを一時ディレクトリに保存
-    $upload_dir = wp_upload_dir();
-    $temp_dir = $upload_dir['basedir'] . '/kssl-temp';
-    if (!file_exists($temp_dir)) {
-        wp_mkdir_p($temp_dir);
+    // The uploaded CSV (it can hold the whole log) is kept in the private directory while importing.
+    $temp_dir = kssl_private_dir('temp');
+    if ($temp_dir === '') {
+        wp_send_json_error(['message' => 'ファイルの保存に失敗しました']);
+        return;
     }
 
     $temp_file = $temp_dir . '/' . $job_id . '.csv';
@@ -1124,6 +1185,11 @@ function kssl_handle_csv_import_existing_ajax() {
         return;
     }
 
+    if (kssl_migration_blocks_writes()) {
+        wp_send_json_error(['message' => kssl_migration_block_message()]);
+        return;
+    }
+
     if (!isset($_POST['file_path']) || empty($_POST['file_path'])) {
         wp_send_json_error(['message' => __('No file selected.', 'kashiwazaki-seo-super-access-log')]);
         return;
@@ -1131,13 +1197,12 @@ function kssl_handle_csv_import_existing_ajax() {
 
     $file_path = sanitize_text_field(wp_unslash($_POST['file_path']));
 
-    // セキュリティチェック: アップロードディレクトリ内のファイルのみ許可
-    $upload_dir = wp_upload_dir();
-    $export_dir = $upload_dir['basedir'] . '/kssl-exports';
+    // Only a file directly inside the export directory (the one this plugin lists)
+    $export_dir = KSSL_CSV_Handler::get_exports_directory();
     $real_file_path = realpath($file_path);
-    $real_export_dir = realpath($export_dir);
+    $real_export_dir = $export_dir !== '' ? realpath($export_dir) : false;
 
-    if (!$real_file_path || strpos($real_file_path, $real_export_dir) !== 0) {
+    if (!$real_file_path || !$real_export_dir || dirname($real_file_path) !== $real_export_dir) {
         wp_send_json_error(['message' => __('Invalid file path.', 'kashiwazaki-seo-super-access-log')]);
         return;
     }
@@ -1236,71 +1301,51 @@ function kssl_handle_get_log_count_ajax() {
  * AJAX処理：削除対象ログ件数確認
  */
 function kssl_handle_count_delete_logs_ajax() {
-    if (!wp_verify_nonce($_POST['nonce'], 'kssl_delete_nonce')) {
-        wp_send_json_error(['message' => 'Invalid nonce']);
-        return;
-    }
-    
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => 'Insufficient permissions']);
-        return;
-    }
-    
-    $filters = isset($_POST['filters']) ? $_POST['filters'] : [];
-    $count = kssl_count_logs_for_deletion($filters);
-    
-    if ($count !== false) {
-        wp_send_json_success(['count' => $count]);
-    } else {
-        wp_send_json_error(['message' => 'カウント処理でエラーが発生しました。']);
-    }
+    kssl_handle_deletion_step_ajax( 'count' );
 }
 
 /**
  * AJAX処理：条件付きログ削除
  */
 function kssl_handle_delete_logs_ajax() {
-    if (!wp_verify_nonce($_POST['nonce'], 'kssl_delete_nonce')) {
-        wp_send_json_error(['message' => 'Invalid nonce']);
-        return;
+    kssl_handle_deletion_step_ajax( 'delete' );
+}
+
+/**
+ * One bounded counting / deleting step (the browser repeats with the returned cursor).
+ */
+function kssl_handle_deletion_step_ajax( $mode ) {
+    if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_POST['nonce'] ) ), 'kssl_delete_nonce' ) ) {
+        wp_send_json_error( [ 'message' => 'Invalid nonce' ] );
     }
-    
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => 'Insufficient permissions']);
-        return;
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( [ 'message' => 'Insufficient permissions' ] );
     }
-    
-    $filters = isset($_POST['filters']) ? $_POST['filters'] : [];
-    $result = kssl_delete_logs_with_filters($filters);
-    
-    if ($result['success']) {
-        wp_send_json_success($result);
-    } else {
-        wp_send_json_error($result);
+    $filters = isset( $_POST['filters'] ) && is_array( $_POST['filters'] ) ? map_deep( wp_unslash( $_POST['filters'] ), 'sanitize_text_field' ) : [];
+    $cursor = isset( $_POST['cursor'] ) ? absint( $_POST['cursor'] ) : 0;
+    $max_id = isset( $_POST['max_id'] ) ? absint( $_POST['max_id'] ) : 0;
+    $result = KSSL_Log_Deletion::step( $filters, $mode, $cursor, $max_id );
+    if ( $result['success'] ) {
+        wp_send_json_success( $result );
     }
+    wp_send_json_error( $result );
 }
 
 /**
  * AJAX処理：全ログ削除
  */
 function kssl_handle_delete_all_logs_ajax() {
-    if (!wp_verify_nonce($_POST['nonce'], 'kssl_delete_nonce')) {
-        wp_send_json_error(['message' => 'Invalid nonce']);
-        return;
+    if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_POST['nonce'] ) ), 'kssl_delete_nonce' ) ) {
+        wp_send_json_error( [ 'message' => 'Invalid nonce' ] );
     }
-    
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => 'Insufficient permissions']);
-        return;
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( [ 'message' => 'Insufficient permissions' ] );
     }
-    
     $result = kssl_delete_all_logs();
-    
-    if ($result['success']) {
-        wp_send_json_success($result);
-    } else {
-        wp_send_json_error($result);
+    if ( $result['success'] ) {
+        wp_send_json_success( $result );
     }
+    wp_send_json_error( $result );
 }
 
 /**
@@ -1334,7 +1379,7 @@ function kssl_handle_optimize_database_ajax() {
 
         wp_send_json_success([
             'job_id' => $job_id,
-            'message' => 'データベース最適化を開始しました。処理には数分かかる場合があります。'
+            'message' => '統計情報の更新を開始しました。'
         ]);
     } catch (Exception $e) {
         wp_send_json_error(['message' => 'エラー: ' . $e->getMessage()]);
@@ -1390,7 +1435,7 @@ function kssl_process_optimize_background($job_id) {
             'updated' => time()
         ], 3600);
 
-        // 統合された最適化を実行（インデックス作成 + OPTIMIZE + ANALYZE）
+        // 統計情報の更新（ANALYZE TABLE のみ。テーブルの再構築は行わない）
         $optimize_result = KSSL_Performance::optimize_database_complete();
 
         if ($optimize_result) {
@@ -1403,8 +1448,10 @@ function kssl_process_optimize_background($job_id) {
             ], 3600);
 
             // 統計情報取得
-            $total_records = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
-            $table_size = $wpdb->get_var("SELECT ROUND(((data_length + index_length) / 1024 / 1024), 2) AS 'size_mb' FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = '{$table_name}'");
+            // Row count from the table statistics just refreshed (an exact COUNT(*) scans the whole table).
+            $table_info = $wpdb->get_row($wpdb->prepare("SELECT TABLE_ROWS AS total_rows, ROUND(((data_length + index_length) / 1024 / 1024), 2) AS size_mb FROM information_schema.TABLES WHERE table_schema = DATABASE() AND table_name = %s", $table_name));
+            $total_records = $table_info ? (int) $table_info->total_rows : 0;
+            $table_size = $table_info ? $table_info->size_mb : 0;
 
             // インデックス数取得
             $indexes = $wpdb->get_results("SHOW INDEX FROM {$table_name}");
@@ -1413,9 +1460,9 @@ function kssl_process_optimize_background($job_id) {
             // ステータス更新: 完了
             set_transient('kssl_optimize_job_' . $job_id, [
                 'status' => 'completed',
-                'message' => 'データベースの完全最適化が完了しました',
+                'message' => '統計情報を更新しました',
                 'progress' => 100,
-                'total_records' => number_format($total_records),
+                'total_records' => '約 ' . number_format($total_records),
                 'table_size' => $table_size . ' MB',
                 'index_count' => $index_count . '個のインデックス',
                 'updated' => time()
@@ -1505,41 +1552,8 @@ function kssl_handle_clear_cache_ajax() {
  * AJAX処理：自動最適化のオン/オフ切り替え
  */
 function kssl_handle_toggle_auto_optimization_ajax() {
-    if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'kssl_toggle_nonce')) {
-        wp_send_json_error(['message' => 'Invalid nonce']);
-        return;
-    }
-
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error(['message' => 'Insufficient permissions']);
-        return;
-    }
-
-    $enabled = isset($_POST['enabled']) && $_POST['enabled'] === 'true' ? '1' : '0';
-    update_option('kssl_auto_optimization_enabled', $enabled);
-
-    // スケジュールを更新
-    if ($enabled === '1') {
-        // 既存のスケジュールをクリア
-        wp_clear_scheduled_hook('kssl_monthly_optimization');
-        // 新しいスケジュールを設定
-        if (!wp_next_scheduled('kssl_monthly_optimization')) {
-            wp_schedule_event(time(), 'monthly', 'kssl_monthly_optimization');
-        }
-        $next_time = wp_next_scheduled('kssl_monthly_optimization');
-        $next_time_formatted = $next_time ? get_date_from_gmt(date('Y-m-d H:i:s', $next_time), 'Y年m月d日 H:i') : '';
-        wp_send_json_success([
-            'message' => '自動最適化を有効にしました',
-            'next_optimization' => $next_time_formatted
-        ]);
-    } else {
-        // スケジュールをクリア
-        wp_clear_scheduled_hook('kssl_monthly_optimization');
-        wp_send_json_success([
-            'message' => '自動最適化を無効にしました',
-            'next_optimization' => null
-        ]);
-    }
+    // The monthly automatic OPTIMIZE (a full table rebuild) was removed.
+    wp_send_json_error( [ 'message' => '自動最適化は廃止されました。' ] );
 }
 
 /**
@@ -1564,4 +1578,42 @@ function kssl_handle_toggle_auto_clear_cache_ajax() {
     } else {
         wp_send_json_success(['message' => '期限切れキャッシュの自動削除を無効にしました']);
     }
+}
+
+/**
+ * Start the migration to the lightweight table (button on the log management tab).
+ */
+function kssl_handle_migration_start_action() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'You do not have permission.', 'Error', [ 'response' => 403 ] );
+    }
+    check_admin_referer( 'kssl_migration_start' );
+    $state = kssl_migration_state();
+    if ( ! empty( $state['failed'] ) ) {
+        unset( $state['failed'] );
+        update_option( KSSL_MIGRATION_OPTION_KEY, $state, false );
+    }
+    $result = kssl_migration_start();
+    $url = add_query_arg( [ 'page' => 'kssl_access_log_page', 'kssl_migration' => $result === true ? 'started' : 'busy' ], admin_url( 'admin.php' ) ) . '#log-management-section';
+    wp_safe_redirect( $url );
+    exit;
+}
+
+/**
+ * Resume a stalled or verify_failed migration: clear the failure marker and re-run the job
+ * (verification resumes from its cursor and repairs what it can).
+ */
+function kssl_handle_migration_resume_action() {
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_die( 'You do not have permission.', 'Error', [ 'response' => 403 ] );
+    }
+    check_admin_referer( 'kssl_migration_resume' );
+    $state = kssl_migration_state();
+    unset( $state['verify_failed'] );
+    $state['repair_rounds'] = 0;
+    update_option( KSSL_MIGRATION_OPTION_KEY, $state, false );
+    wp_unschedule_hook( 'kssl_migration_tick' );
+    wp_schedule_single_event( time(), 'kssl_migration_tick' );
+    wp_safe_redirect( add_query_arg( [ 'page' => 'kssl_access_log_page' ], admin_url( 'admin.php' ) ) . '#log-management-section' );
+    exit;
 }

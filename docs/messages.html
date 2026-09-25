@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メッセージ一覧 - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li class="active"><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>メッセージ一覧</h1>
+        <p class="lead">管理画面に表示されるお知らせ・確認・エラーのメッセージを、画面ごとにまとめました。表示されたときの意味と対処を確認できます。</p>
+
+        <p>画面に表示される文言をそのまま載せています（N や %s には数字や名前が入ります）。</p>
+
+        <h2>すべての管理画面に出るお知らせ</h2>
+        <table>
+            <thead><tr><th style="width:45%;">メッセージ</th><th>意味と対処</th></tr></thead>
+            <tbody>
+                <tr><td>Kashiwazaki SEO Super Access Log: 以前のバージョンがエクスポート・インポートの CSV (アクセスログ全件、IP アドレスを含む) を置いていた公開ディレクトリ … を、空にして削除できませんでした (ファイルの所有者・権限)。…</td><td>以前のバージョンが CSV を置いていた場所を片付けられませんでした。→ <a href="troubleshooting.html#old-csv-dir">困ったとき</a></td></tr>
+            </tbody>
+        </table>
+
+        <h2>画面を開いたとき</h2>
+        <table>
+            <thead><tr><th style="width:45%;">メッセージ</th><th>意味と対処</th></tr></thead>
+            <tbody>
+                <tr><td>このページにアクセスする権限がありません。</td><td>サイトの設定を変更できる権限（管理者）がないアカウントで開きました。管理者のアカウントで開いてください。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>メインタブ</h2>
+        <table>
+            <thead><tr><th style="width:45%;">メッセージ</th><th>意味と対処</th></tr></thead>
+            <tbody>
+                <tr><td>現在のフィルター条件ではログが見つかりません。</td><td>条件に合うログがありません。期間を広げるか条件をゆるめてください。</td></tr>
+                <tr><td>Chart Disabled ／ パフォーマンスのためチャートは無効になっています（現在: N ログ、上限: M）。設定で調整できます。</td><td>グラフの件数の上限を超えました。→ <a href="settings-basic.html#chart-limit">チャート表示制限</a></td></tr>
+                <tr><td>📊 現在のフィルター条件ではデータがありません。フィルターを変更するか、「すべて」を選択してください。</td><td>グラフにするデータがありません。</td></tr>
+                <tr><td>データがありません</td><td>グラフの右の一覧に表示する項目がありません。</td></tr>
+                <tr><td>❌ Chart.jsのロードに失敗しました。ページをリロードしてください。</td><td>グラフの部品を読み込めませんでした。通信を確かめてページを読み直してください。</td></tr>
+                <tr><td>📌 お知らせ: 国・地域データを取得するには、設定で「国コード取得を有効化」にチェックを入れてください。</td><td>IP アドレスから国を調べる設定がオフです（設定での名前は「IPアドレスから国コードを推定」）。オフのままでも、ブラウザの言語から国は推定しています。</td></tr>
+                <tr><td>No trend data available for the selected period.</td><td>期間内に推移グラフのデータがありません。</td></tr>
+                <tr><td>チャートを読み込んでいます... ／ チャートデータを読み込んでいます...</td><td>読み込み中です。</td></tr>
+                <tr><td>この訪問者IDをブロックしてもよろしいですか？ブロックされたユーザーはサイトにアクセスできなくなります。</td><td>「Block」を押したときの確認です。</td></tr>
+                <tr><td>この訪問者IDのブロックを解除してもよろしいですか？</td><td>「Unblock」を押したときの確認です。</td></tr>
+                <tr><td>Potentially suspicious access</td><td>一覧の ⚠ の印にマウスを乗せたときの説明です。→ <a href="log-table.html#suspicious-mark">疑わしいアクセスの印</a></td></tr>
+            </tbody>
+        </table>
+
+        <h2>設定タブ</h2>
+        <table>
+            <thead><tr><th style="width:45%;">メッセージ</th><th>意味と対処</th></tr></thead>
+            <tbody>
+                <tr><td>設定を保存しました。</td><td>保存できました。</td></tr>
+                <tr><td>設定の保存に失敗しました。</td><td>設定を変える権限がありません。管理者のアカウントで操作してください。</td></tr>
+                <tr><td>テーブル移行中のため、疑わしいキーワードの変更は保存されませんでした。移行完了後にもう一度保存してください。</td><td>移し替えが終わってから保存し直してください（ほかの項目は保存されています）。</td></tr>
+                <tr><td>ボット検出パターンが正規表現として正しくないため、変更は保存されませんでした。</td><td>パターンの書き方を直してください（ほかの項目は保存されています）。→ <a href="settings-filter-block.html#bot-pattern">ボット検出パターン</a></td></tr>
+                <tr><td>カスタム値は1000以上、または0（無制限）を指定してください。</td><td>チャート表示制限のカスタム値が 1〜999 です。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>ログの管理タブ：データベースとキャッシュ</h2>
+        <table>
+            <thead><tr><th style="width:45%;">メッセージ</th><th>意味と対処</th></tr></thead>
+            <tbody>
+                <tr><td>✅ 優良 / ⚠️ 注意 / ❌ 要改善</td><td>パフォーマンススコアの評価です。→ <a href="log-management.html#db-status">データベース状態</a></td></tr>
+                <tr><td>🔍 インデックスが不足しています — …</td><td>軽量な保存形式では常に表示されます。問題ではありません。</td></tr>
+                <tr><td>⚠️ 高レベルの断片化を検出 / ⚠️ 中レベルの断片化を検出</td><td>削除などで空き領域が増えています。</td></tr>
+                <tr><td>💾 データベース容量が大きくなっています — …</td><td>古いログを減らすことを検討してください。</td></tr>
+                <tr><td>⏰ 最適化が実行されていません / ⏰ 最適化から時間が経過しています</td><td>「統計情報を更新」を実行すると消えます。</td></tr>
+                <tr><td>ログテーブルを新しい形式へ移行中のため、この操作は移行が終わるまで実行できません。</td><td>移し替えが終わるまで待ってください。→ <a href="automation.html#while-migrating">移し替えの途中にできないこと</a></td></tr>
+                <tr><td>別の処理が実行中です。少し待ってから再度お試しください。</td><td>ほかの大量の処理と重なりました。少し待ってからやり直してください。</td></tr>
+                <tr><td>バックグラウンド処理を開始しました - データベースを最適化しています... ／ バックグラウンド処理実行中: … 進行状況: N%</td><td>統計情報の更新の途中です。ページを開いたまま待ってください。</td></tr>
+                <tr><td>✓ 最適化完了! 統計情報を更新しました</td><td>統計情報の更新が終わりました。</td></tr>
+                <tr><td>✗ 最適化エラー! …</td><td>更新に失敗しました。時間をおいてやり直してください。</td></tr>
+                <tr><td>✗ 通信エラー! サーバーに接続できませんでした。</td><td>通信に失敗しました。ログイン状態と通信を確かめてください。</td></tr>
+                <tr><td>期限切れキャッシュの自動削除を有効にしました ／ 無効にしました</td><td>チェックの切り替えを保存しました。</td></tr>
+                <tr><td>⚠️ 期限切れキャッシュが残っています</td><td>表示には影響しません。消すなら「期限切れキャッシュのみクリア」。</td></tr>
+                <tr><td>すべてのトレンドデータキャッシュをクリアします。よろしいですか？</td><td>すべてのキャッシュを消す前の確認です。</td></tr>
+                <tr><td>✓ クリア完了! N個のキャッシュをクリアしました。</td><td>キャッシュを消しました。</td></tr>
+                <tr><td>✓ 成功！ Test log successfully recorded!</td><td>テストログを記録できました（本物のログとして 1 件増えます）。</td></tr>
+                <tr><td>✗ AJAXエラー！ サーバーに接続できませんでした。</td><td>テストログ記録の通信に失敗しました。ログイン状態と通信を確かめてください。</td></tr>
+                <tr><td>✗ エラー！ Test log could not be recorded. …</td><td>テストログを記録できませんでした。操作している人の IP アドレスがサーバーと同じ場合や、除外の設定に当てはまる場合に起きます。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>ログの管理タブ：削除</h2>
+        <table>
+            <thead><tr><th style="width:45%;">メッセージ</th><th>意味と対処</th></tr></thead>
+            <tbody>
+                <tr><td>ログの保存期間が無期限になっています。…</td><td>自動クリーンアップがオフです。</td></tr>
+                <tr><td>確認中... N% ／ 削除対象: N 件　上記のログが削除されます。よろしいですか？</td><td>件数を数えている途中 / 数えた結果です。</td></tr>
+                <tr><td>日付の形式が正しくありません (YYYY-MM-DD)。</td><td>日付を選び直してください。</td></tr>
+                <tr><td>先に「削除対象件数を確認」を押してください。</td><td>件数を確認していないか、確認の後に条件を変えました。</td></tr>
+                <tr><td>選択した条件に合致するログを削除します。この操作は元に戻せません。続行しますか？</td><td>削除の前の最後の確認です。</td></tr>
+                <tr><td>削除中... N% (M 件) ／ ✓ 削除完了! N 件のログを削除しました。</td><td>削除の途中 / 完了です。</td></tr>
+                <tr><td>✗ 削除エラー! 集計の更新に失敗したため、削除を中止しました。…</td><td>安全のため削除を止めました。少し待ってからやり直してください。</td></tr>
+                <tr><td>すべてのアクセスログを削除します。この操作は元に戻せません。本当に続行しますか？ ／ ✓ 全削除完了!</td><td>全件削除の確認 / 完了です。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>ログの管理タブ：CSV</h2>
+        <table>
+            <thead><tr><th style="width:45%;">メッセージ</th><th>意味と対処</th></tr></thead>
+            <tbody>
+                <tr><td>エクスポート開始中... ／ CSVファイルを生成中... ／ N件をエクスポート中...</td><td>ファイルを作っている途中です。</td></tr>
+                <tr><td>ログテーブルの移行の仕上げが終わるのを待っています...</td><td>移し替えの仕上げが終わるのを待ってから、エクスポートを始めます。</td></tr>
+                <tr><td>✓ エクスポート完了！ファイル一覧をご確認ください。</td><td>「エクスポート済みファイル」からダウンロードしてください。</td></tr>
+                <tr><td>エクスポート開始に失敗しました: エクスポート処理がすでに実行中です。しばらくお待ちください。</td><td>前のエクスポートが終わるまで待ってください（5 分経てば新しく始められます）。</td></tr>
+                <tr><td>エクスポート開始に失敗しました: テーブル移行の仕上げ中です。完了後にもう一度エクスポートしてください。</td><td>ログの保存形式の移し替えの仕上げ中です。少し待ってから、もう一度押してください。</td></tr>
+                <tr><td>✗ エクスポートエラー: ファイルを作成できませんでした</td><td>サーバーの保存場所に書き込めませんでした。サーバーの空き容量と、アップロード用のフォルダーへの書き込みができるかを、サーバーの管理者に確かめてもらってください。</td></tr>
+                <tr><td>エクスポートされたファイルはありません。</td><td>まだファイルを作っていません。</td></tr>
+                <tr><td>このファイルを削除してもよろしいですか？</td><td>ファイルを削除する前の確認です。</td></tr>
+                <tr><td>ファイルが見つかりません</td><td>ダウンロードしようとしたファイルがすでにありません。一覧を開き直してください。</td></tr>
+                <tr><td>❌ ファイルサイズが制限を超えています</td><td>アップロードの上限を超えています。→ <a href="csv.html#import">データインポート</a></td></tr>
+                <tr><td>インポートするファイルを選択してください。 ／ CSVファイルを選択してください。</td><td>ファイルを選んでから押してください。</td></tr>
+                <tr><td>バックグラウンド処理実行中: N 行を処理済み (M件インポート済み)...</td><td>取り込みの途中です。</td></tr>
+                <tr><td>✓ インポート完了 ／ ✓ インポート成功: …</td><td>取り込みが終わりました。</td></tr>
+                <tr><td>⚠️ 一部インポート成功 ／ ❌ インポート失敗: …</td><td>一部または全部を取り込めませんでした。内訳の行を確かめてください。→ <a href="csv.html#import">結果の見方</a></td></tr>
+                <tr><td>Invalid file type. Only CSV files are allowed.</td><td>CSV 以外のファイルを選びました。</td></tr>
+                <tr><td>File too large. Maximum size is 500MB.</td><td>500MB を超えるファイルはアップロードできません。</td></tr>
+                <tr><td>Could not read CSV header. ／ No valid columns found in CSV.</td><td>1 行目の見出しを読めませんでした。サンプル CSV と見比べてください。</td></tr>
+                <tr><td>⚠ タイムアウト ＋ 処理がタイムアウトしました。ページを更新して結果を確認してください。</td><td>画面の待ち時間が過ぎました。取り込みは裏で続いています。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>訪問者に表示される画面</h2>
+        <table>
+            <thead><tr><th style="width:45%;">画面</th><th>表示される条件</th></tr></thead>
+            <tbody>
+                <tr><td>Access Restricted ／ Your access to this site has been temporarily restricted due to unusual activity. …</td><td>訪問者 ID でブロックした訪問者</td></tr>
+                <tr><td>Access Restricted ／ Your access to this site has been temporarily restricted due to your User Agent. …</td><td>User-Agent でブロックした相手</td></tr>
+                <tr><td>Forbidden: User-Agent required</td><td>「User-Agentが空のアクセスをブロックする」がオンのときの、User-Agent が空のアクセス</td></tr>
+            </tbody>
+        </table>
+
+        <nav class="page-nav">
+            <a href="automation.html" class="prev">&laquo; 自動で行われること</a>
+            <a href="troubleshooting.html" class="next">困ったとき &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

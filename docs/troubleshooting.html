@@ -3,245 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>トラブルシューティング - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <title>困ったとき - Kashiwazaki SEO Super Access Log マニュアル</title>
     <link rel="stylesheet" href="css/style.css?v=1">
 </head>
 <body>
-<button class="hamburger-btn" aria-label="メニュー">&#9776;</button>
-
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <h2 style="color:#fff;">Super Access Log</h2>
-        <span class="version">v1.0.0</span>
-        <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
-    </div>
-    <ul>
-        <li><a href="index.html">概要</a></li>
-        <li><a href="setup.html">インストール・初期設定</a></li>
-        <li><a href="log-management.html">ログ管理</a></li>
-        <li class="active"><a href="troubleshooting.html">トラブルシューティング</a></li>
-    </ul>
-</nav>
-
-<main class="content">
-    <h1>トラブルシューティング</h1>
-    <p class="lead">Kashiwazaki SEO Super Access Log の使用中に発生しうる問題と対処法、動作要件、技術仕様について解説します。</p>
-
-    <h2>よくある問題と対処法</h2>
-
-    <h3>アクセスログが記録されない</h3>
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">考えられる原因</th>
-                <th>対処法</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>プラグインが有効化されていない</td>
-                <td>管理画面の「プラグイン」一覧で、本プラグインが有効になっていることを確認してください。</td>
-            </tr>
-            <tr>
-                <td>カスタムテーブルが作成されていない</td>
-                <td>プラグインを一度無効化してから再有効化してください。有効化時にテーブルが自動作成されます。</td>
-            </tr>
-            <tr>
-                <td>除外設定に該当している</td>
-                <td>設定画面の除外URIパターン、静的ファイル除外、自サーバーIP除外の設定を確認してください。</td>
-            </tr>
-            <tr>
-                <td>キャッシュプラグインがPHP実行をスキップしている</td>
-                <td>フルページキャッシュが有効な場合、PHPが実行されずログが記録されないことがあります。キャッシュプラグインの設定を確認してください。</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h3>チャートが表示されない</h3>
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">考えられる原因</th>
-                <th>対処法</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Chart.jsが読み込まれていない</td>
-                <td>ブラウザの開発者ツールのコンソールでJavaScriptエラーがないか確認してください。</td>
-            </tr>
-            <tr>
-                <td>ログデータが存在しない</td>
-                <td>チャートはログデータに基づいて描画されます。十分なデータが蓄積されてから確認してください。</td>
-            </tr>
-            <tr>
-                <td>他のプラグインとJavaScriptが競合している</td>
-                <td>他のプラグインを一時的に無効化して、競合がないか確認してください。</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h3>CSVエクスポートが失敗する</h3>
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">考えられる原因</th>
-                <th>対処法</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>データ量が多すぎる</td>
-                <td>フィルタ条件で期間を絞り込んでからエクスポートしてください。</td>
-            </tr>
-            <tr>
-                <td>PHPメモリ制限に達している</td>
-                <td><code>wp-config.php</code> で <code>WP_MEMORY_LIMIT</code> を引き上げてください（推奨: 256M以上）。</td>
-            </tr>
-            <tr>
-                <td>PHP実行時間制限に達している</td>
-                <td>サーバーの <code>max_execution_time</code> を確認してください。本プラグインは最大300秒に設定しています。</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h3>ボットが正しく検出されない</h3>
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">考えられる原因</th>
-                <th>対処法</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>ボット検出パターンが不足している</td>
-                <td>設定画面のボット検出パターンに、検出したいボットのUser-Agentパターンを追加してください。</td>
-            </tr>
-            <tr>
-                <td>ボットがUser-Agentを偽装している</td>
-                <td>User-Agentを偽装するボットはパターンマッチングでは検出できません。IPアドレスや行動パターンで判断してください。</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="callout callout-tip">
-        <div class="callout-title">ヒント</div>
-        <p>問題が解決しない場合は、一度プラグインを無効化してから再有効化してみてください。設定値はデータベースに保持されるため、再有効化後も設定は維持されます。</p>
-    </div>
-
-    <h2>動作要件</h2>
-
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">項目</th>
-                <th>要件</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>WordPress</td>
-                <td>5.0 以上</td>
-            </tr>
-            <tr>
-                <td>PHP</td>
-                <td>7.4 以上</td>
-            </tr>
-            <tr>
-                <td>対応ブラウザ</td>
-                <td>Chrome、Firefox、Safari、Edge（最新版）</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h2>技術仕様</h2>
-
-    <ul>
-        <li><strong>データ保存:</strong> wp_options（kssl_*系17キー）</li>
-        <li><strong>カスタムテーブル:</strong> kssl_access_logs</li>
-        <li><strong>外部通信:</strong> なし</li>
-        <li><strong>Cronイベント:</strong> kssl_monthly_optimization（月次テーブル最適化）、kssl_cleanup_old_logs（自動クリーンアップ）</li>
-        <li><strong>メール送信:</strong> なし</li>
-        <li><strong>AJAXハンドラー:</strong> 20個（ログ取得・フィルタ・チャート・CSV操作・設定関連）</li>
-        <li><strong>フロントエンド:</strong> Cookieベースの訪問者トラッキングのみ（JSON-LD・metaタグ出力なし）</li>
-        <li><strong>セキュリティ:</strong> nonce検証、権限チェック、入出力サニタイズ、不審アクセス検出</li>
-    </ul>
-
-    <h2>アーキテクチャ</h2>
-
-    <p>Kashiwazaki SEO Super Access Log は以下のコンポーネントで構成されています。</p>
-
-    <h3>フロントエンド（トラッキング）</h3>
-    <ul>
-        <li>Cookieベースの訪問者ID発行と再訪問識別</li>
-        <li>User-Agentパターンマッチングによるボット自動判定</li>
-        <li>不審なリクエストURLパターンの検出</li>
-        <li>アクセスデータのカスタムテーブルへの記録</li>
-    </ul>
-
-    <h3>バックエンド（管理画面）</h3>
-    <ul>
-        <li>20個のAJAXハンドラーによるログの取得・フィルタ・チャート描画・CSV操作</li>
-        <li>Chart.jsによるアクセストレンドの可視化</li>
-        <li>CSVエクスポート・インポート機能</li>
-        <li>訪問者ブロック・User-Agentブロック機能</li>
-        <li><code>manage_options</code> 権限のユーザーのみアクセス可能</li>
-    </ul>
-
-    <h3>Cronジョブ</h3>
-    <ul>
-        <li><code>kssl_cleanup_old_logs</code>: 保持期間を超えたログの自動削除（バッチ1,000件ずつ）</li>
-        <li><code>kssl_monthly_optimization</code>: 月次のテーブル最適化（OPTIMIZE TABLE）</li>
-    </ul>
-
-    <h3>アクセス記録フロー</h3>
-
-    <div class="step">
-        <span class="step-number">1</span>
-        <div class="step-body">
-            <p>訪問者がサイトにアクセスすると、フロントエンドのトラッキング処理が開始されます。</p>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
         </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">2</span>
-        <div class="step-body">
-            <p>除外設定（URI パターン、静的ファイル、自サーバーIP、空UA）に該当するかチェックします。該当する場合は記録をスキップします。</p>
-        </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">3</span>
-        <div class="step-body">
-            <p>Cookie IDの存在を確認し、新規訪問者にはCookie IDを発行します。既存訪問者のCookieは更新されます。</p>
-        </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">4</span>
-        <div class="step-body">
-            <p>User-Agentパターンマッチングでボット判定を行い、アクセスデータをカスタムテーブル <code>kssl_access_logs</code> に記録します。</p>
-        </div>
-    </div>
-
-    <div class="callout callout-note">
-        <div class="callout-title">補足</div>
-        <p>プラグインの削除時は、<code>uninstall.php</code> によりカスタムテーブル <code>kssl_access_logs</code>、<code>wp_options</code> のkssl_*系設定、Cronイベントが自動的にクリーンアップされます。</p>
-    </div>
-
-    <nav class="page-nav">
-        <a href="log-management.html" class="prev">&laquo; ログ管理</a>
-        <span></span>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li class="active"><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
     </nav>
 
-    <footer class="manual-footer">
-        <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
-        <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.0</p>
-    </footer>
-</main>
+    <main class="content">
+        <h1>困ったとき</h1>
+        <p class="lead">よくある困りごとを「症状 → 原因 → 対処」の順にまとめました。</p>
 
-<div class="lightbox"></div>
-<script src="js/manual.js?v=1"></script>
+        <figure class="infographic">
+            <img src="images/infographics/ig-troubleshooting.png" alt="困ったときの確認の流れ">
+            <figcaption>症状から確かめる場所をたどる流れ</figcaption>
+        </figure>
+
+        <h2 id="not-recorded">アクセスが記録されない</h2>
+        <p><strong>原因:</strong> 記録しない条件に当てはまっているか、記録のしくみが動いていない可能性があります。</p>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>「<a href="recording.html#not-recorded">記録されないアクセス</a>」に当てはまらないかを確かめます（管理画面・画像などのファイル・除外パターン・サーバー自身・ボットの 404・User-Agent が空）。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>ログアウトした状態や別のブラウザで公開ページを開き、メインタブで「過去24時間」を選んで確かめます。表示タイムゾーンが UTC だと、日本時間と 9 時間ずれて見えます。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>「ログの管理」タブの「<a href="log-management.html#debug">デバッグ情報</a>」で、「✓ 存在」「✓ 登録済み」になっているかを確かめ、「テストログ記録」を押します。</p></div></div>
+        <div class="step"><span class="step-number">4</span><div class="step-content"><p>ページのキャッシュを出すプラグインやサービスを使っていると、キャッシュから返したページはサーバーまで届かず記録されません。キャッシュの設定を確かめてください。</p></div></div>
+
+        <h2 id="slow">管理画面の表示が遅い</h2>
+        <p><strong>原因:</strong> ログが以前の形式のままか、文字の条件で長い期間を絞り込んでいる可能性があります。</p>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>「<a href="log-management.html#lightweight">データベースの軽量化</a>」が「✅ ログテーブルは軽量な形式です。」になっているかを確かめます。旧形式なら移し替えを始めます。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>IP アドレスやページなど文字の条件を使うときは、期間を短くします。→ <a href="main-screen.html">表示が速くなるしくみ</a></p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>自動クリーンアップをオンにして、ログが増え続けないようにします。大量に削除した後は「統計情報を更新」を押します。</p></div></div>
+
+        <h2 id="numbers">数字が思っていたのと違う</h2>
+        <table>
+            <thead><tr><th style="width:35%;">気づいたこと</th><th>考えられる理由</th></tr></thead>
+            <tbody>
+                <tr><td>日付が 1 日ずれている・夜のアクセスが前の日になる</td><td>表示タイムゾーンが UTC のままです。「Tokyo (JST)」を選んでください。削除とエクスポートの日付は、WordPress の一般設定のタイムゾーンで扱います。</td></tr>
+                <tr><td>アクセス解析サービスより件数が多い</td><td>このプラグインはボットのアクセスも記録します。ボット「ボット: いいえ」で絞り込んでください。</td></tr>
+                <tr><td>攻撃のようなアクセスが見当たらない</td><td>初期状態では疑わしいアクセスを除いています。「疑わしいアクセスを含める」をオンにしてください。</td></tr>
+                <tr><td>ユニーク訪問者に「約」が付く</td><td>32 日を超える期間で、速く表示するための推定値です。</td></tr>
+                <tr><td>国の割合が日本に偏る・海外が少ない</td><td>国はブラウザの言語設定から推定しています。→ <a href="recording.html#country">国の決まり方</a></td></tr>
+                <tr><td>推移グラフの山や谷が細かく出ない</td><td>91 日以上を表示すると、グラフを間引いて描きます。期間を 90 日以内にしてください。</td></tr>
+                <tr><td>「新規」が多すぎる</td><td>Cookie の有効期限（初期値 24 時間）を過ぎると「新規」になります。Cookie を受け付けないボットも「新規」です。</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="blocked-self">自分がサイトやログイン画面を開けなくなった</h2>
+        <p><strong>原因:</strong> 「ブロック対象User Agent」に、自分のブラウザの User-Agent に含まれる語を書いた可能性があります。</p>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>別のブラウザや端末から管理画面に入れるなら、「設定」タブの「ブロック対象User Agent」から、その語を消して保存します。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>どこからも入れないときは、FTP などでサーバーに入り、<code>wp-content/plugins/</code> にあるこのプラグインのフォルダーの名前を一時的に変えて止めます。管理画面に入って設定を直してから、フォルダーの名前を戻して有効化します。</p></div></div>
+
+        <h2 id="cleanup-not-running">古いログが自動で消えない</h2>
+        <p><strong>原因:</strong> 自動クリーンアップがオフか、定期処理（WP-Cron）が動いていない可能性があります。</p>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>「設定」タブで「自動クリーンアップを有効化」がオンになっているかを確かめ、保存し直します（保存すると予定を登録し直します）。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>アクセスの少ないサイトでは WP-Cron が遅れます。サーバーの cron から WP-Cron を動かす設定を検討してください。→ <a href="automation.html#scheduled">定期的に行われる処理</a></p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>ログの保存形式の移し替え中は行いません。移し替えが終わるのを待ってください。</p></div></div>
+
+        <h2 id="stuck">処理が途中で止まった・終わらない</h2>
+        <p><strong>原因:</strong> 裏の処理は WP-Cron で進むため、WP-Cron が止まっていると進みません。</p>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>エクスポート・インポート・統計情報の更新・移し替えは、画面を閉じても裏で続きます。しばらくしてからページを開き直して確かめてください。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>移し替えが 10 分以上進まないときは「移行を再開する」が表示されます。押すとやり直します。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>1 時間ごとの見回りが、止まった処理を自動で再開します。それでも進まないときは、WP-Cron が動いているかをサーバーの管理者に確かめてもらってください。</p></div></div>
+
+        <h2 id="import-errors">インポートでエラーが出る</h2>
+        <table>
+            <thead><tr><th style="width:35%;">表示</th><th>対処</th></tr></thead>
+            <tbody>
+                <tr><td>行 N: データベース挿入エラー</td><td>CSV の ID が、すでにあるログと重なっています。戻す範囲のログを先に削除してから取り込んでください。</td></tr>
+                <tr><td>行 N: データ検証エラー - 日時が空です / 日時の形式が正しくありません</td><td>日時の列を「2026-01-31 12:34:56」の形式にしてください。</td></tr>
+                <tr><td>すべてエラーまたはスキップされました</td><td>すでに同じログがあるため、重複として飛ばした可能性があります。</td></tr>
+                <tr><td>ファイルサイズが制限を超えています</td><td>ファイルを分けるか、「既存のエクスポートファイルから選択」を使ってください。</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="old-csv-dir">「公開ディレクトリ … を、空にして削除できませんでした」と表示される</h2>
+        <p><strong>原因:</strong> 以前のバージョンは、エクスポート・インポートの CSV ファイルを、サーバーの設定によっては外から開ける場所（アップロード用のフォルダーの中の <code>kssl-exports</code>・<code>kssl-temp</code>）に置いていました。1.0.1 は更新後にそれらを外から見られない場所へ移しますが、ファイルの所有者や権限の都合で移せませんでした。</p>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>お知らせに表示されたフォルダーを、サーバーの管理者（またはホスティングのファイル管理）で確かめます。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>中の CSV ファイルが不要なら、フォルダーごと削除します。必要なら、ダウンロードしてから削除します。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>または、フォルダーの所有者・権限を WordPress が書き換えられるように直します。10 分以内に自動で移し直し、お知らせが消えます。</p></div></div>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>このお知らせが出ている間は、中の CSV ファイル（IP アドレスを含むログ）が、サーバーの設定によっては URL を知られると取得されるおそれがあります。早めに対処してください。</p>
+        </div>
+
+        <h2 id="ip-wrong">IP アドレスがすべて同じ・中継サーバーの IP アドレスになる</h2>
+        <p><strong>原因:</strong> 特殊な中継サーバーの構成で、訪問者の IP アドレスを受け取れていない可能性があります。</p>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>Cloudflare や一般的なホスティングの構成では、自動で訪問者の IP アドレスを記録します。それでも中継サーバーの IP アドレスになるときは、開発者に依頼して、中継サーバーを信頼する設定（開発者向けの設定）を追加してもらってください。</p></div></div>
+
+        <h2>動作要件と制限</h2>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>WordPress / PHP</td><td>WordPress 5.9 以上、PHP 7.4 以上</td></tr>
+                <tr><td>定期処理</td><td>WordPress の予約実行（WP-Cron）が動くこと</td></tr>
+                <tr><td>インポートの上限</td><td>アップロードは最大 500MB（サーバーの設定がこれより小さいときは、その値）</td></tr>
+                <tr><td>管理画面のグラフ・国旗</td><td>インターネット上の配信元から読み込むため、管理画面を開くブラウザがインターネットにつながっていること</td></tr>
+            </tbody>
+        </table>
+
+        <nav class="page-nav">
+            <a href="messages.html" class="prev">&laquo; メッセージ一覧</a>
+            <a href="glossary.html" class="next">用語集 &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
 </body>
 </html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メイン画面の見方 - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li class="active"><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>メイン画面の見方</h1>
+        <p class="lead">管理画面を開くと最初に表示される「メイン」タブの全体像です。画面を 5 つの領域に分けて、それぞれ何が分かるかを説明します。</p>
+
+        <figure class="infographic">
+            <img src="images/infographics/ig-main-screen-map.png" alt="メイン画面の 5 つの領域: 絞り込み・合計とユニーク訪問者・アクセス推移グラフ・アクセス統計グラフ・ログ一覧">
+            <figcaption>メイン画面の 5 つの領域</figcaption>
+        </figure>
+
+        <h2>画面の地図</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/10-main-tab-full.png" alt="メインタブの全体" class="lightbox-trigger">
+            <figcaption>メインタブの全体（過去 12 ヶ月・Tokyo (JST) で表示）</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:8%;">番号</th><th style="width:25%;">領域</th><th>分かること</th><th style="width:22%;">詳しい説明</th></tr></thead>
+            <tbody>
+                <tr><td>①</td><td>絞り込み</td><td>表示する期間や、IP アドレス・ページ・ボットかどうか等の条件を決めます。条件はこの画面のすべて（②〜⑤）に効きます。</td><td><a href="filters.html">絞り込み</a></td></tr>
+                <tr><td>②</td><td>合計とユニーク訪問者</td><td>今の条件に合うアクセスの件数と、訪問者の数。</td><td>このページの下</td></tr>
+                <tr><td>③</td><td>アクセストレンドチャート</td><td>日ごとのアクセス数の推移と、増えているか減っているか。</td><td><a href="charts.html#trend">グラフの見方</a></td></tr>
+                <tr><td>④</td><td>アクセス統計チャート</td><td>ブラウザ・国・訪問タイプ・応答の状態・参照元の割合。</td><td><a href="charts.html#stats">グラフの見方</a></td></tr>
+                <tr><td>⑤</td><td>ログ一覧</td><td>アクセスを 1 件ずつ、新しい順に 10 件ずつ表示します。訪問者のブロックもここからできます。</td><td><a href="log-table.html">ログ一覧とブロック</a></td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="totals">合計とユニーク訪問者</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/19-main-totals.png" alt="合計とユニーク訪問者の表示" class="lightbox-trigger">
+            <figcaption>見出し「アクセスログ」の下に表示される合計</figcaption>
+        </figure>
+        <p>「<strong>合計: N ログ、ユニーク訪問者: N</strong>」と表示されます。</p>
+        <table>
+            <thead><tr><th style="width:30%;">表示</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>合計</td><td>今の絞り込み条件に合うアクセスの件数です。</td></tr>
+                <tr><td>ユニーク訪問者</td><td>同じ条件で、何人の訪問者がいたかです。訪問者は、ブラウザに保存した訪問者 ID（Cookie）で見分けます。訪問者 ID がない記録（Cookie を受け付けないボットなど）は、IP アドレスで見分けます。</td></tr>
+                <tr><td>「約」が付くとき</td><td>期間が 32 日を超えると、ユニーク訪問者は「約 1,347,106」のように推定値になることがあります。長い期間を速く表示するための集計を使ったときで、誤差はごくわずかです。IP アドレスやページなど、文字の条件で絞り込むと、正確な数を表示します。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-note">
+            <div class="callout-title">補足</div>
+            <p>初期状態では、疑わしいキーワードを含むアクセス（攻撃の試みなど）は合計・グラフ・一覧から除かれています。含めるには、絞り込みの「疑わしいアクセスを含める」をオンにします。→ <a href="filters.html#include-suspicious">疑わしいアクセスを含める</a></p>
+        </div>
+
+        <h2>表示が速くなるしくみ（利用者向けの説明）</h2>
+        <p>ログが何百万件もあると、そのまま数えるのに時間がかかります。そこで、合計・グラフは、裏で自動的に作っている「1 時間ごとの集計」から表示します。集計は数分おきに作り足され、最後の 2 時間ほどはログから直接数えるので、いま来たアクセスもすぐ数字に反映されます。</p>
+        <table>
+            <thead><tr><th style="width:40%;">条件</th><th>表示のされ方</th></tr></thead>
+            <tbody>
+                <tr><td>期間・選択式の条件（ユーザー・ボット・訪問タイプ・ソース）・ステータスだけで絞り込んだとき</td><td>集計から表示するので、長い期間でも速く表示されます。</td></tr>
+                <tr><td>IP アドレス・リクエストパス・ユーザーエージェント・リファラー・国コード・訪問者 ID で絞り込んだとき、「過去24時間」を選んだとき</td><td>ログから直接数えます。条件によっては表示に時間がかかります。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-tip">
+            <div class="callout-title">おすすめ</div>
+            <p>長い期間の傾向を見るときは、まず期間と選択式の条件だけで全体をつかみ、気になるところを IP アドレスやページで絞り込むと、待ち時間を短くできます。</p>
+        </div>
+
+        <nav class="page-nav">
+            <a href="setup.html" class="prev">&laquo; インストール・初期設定</a>
+            <a href="filters.html" class="next">絞り込み &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

@@ -26,24 +26,33 @@ function kssl_display_log_page_wrapper_func() {
     // 除外URIパターンの適用
     list($display_where_clauses, $display_params) = kssl_apply_excluded_uri_patterns($display_where_clauses, $display_params);
     
-    // ログデータの取得
-    $log_data = kssl_get_log_data($display_where_clauses, $display_params);
-    
-    // 最適化ファイルを読み込み
-    if (file_exists(dirname(__DIR__) . '/kssl-chart-optimizer.php')) {
-        require_once dirname(__DIR__) . '/kssl-chart-optimizer.php';
-    }
+    // Hourly aggregates when every filter can use them (totals, trend and charts in milliseconds);
+    // otherwise, or while they are being built, the raw-log queries below.
+    $include_suspicious = isset($_REQUEST['include_suspicious']) && $_REQUEST['include_suspicious'] === '1';
+    $agg_spec = kssl_agg_filter_spec($current_filters, $include_suspicious);
+    $agg = $agg_spec !== null ? kssl_agg_display_data($agg_spec, $display_where_clauses, $display_params) : null;
 
-    // チャートデータの取得（最適化版を優先）
-    if (function_exists('kssl_get_optimized_chart_data')) {
+    // ログデータの取得
+    $log_data = kssl_get_log_data($display_where_clauses, $display_params, $agg !== null ? [
+        'total_items'     => $agg['total_items'],
+        'unique_visitors' => $agg['unique_visitors'],
+    ] : []);
+    $log_data['unique_approx'] = $agg !== null && ! empty($agg['unique_approx']);
+
+    // チャートデータの取得（集計 → 最適化版の順）
+    if ($agg !== null && $agg['charts'] !== null) {
+        $chart_data = $agg['charts'];
+    } elseif (function_exists('kssl_get_optimized_chart_data')) {
         $chart_data = kssl_get_optimized_chart_data($display_where_clauses, $display_params, $log_data['total_items']);
     } else {
         $chart_data = kssl_get_chart_data($display_where_clauses, $display_params, $log_data['total_items']);
     }
 
-    // トレンドデータの取得（最適化版を優先）
+    // トレンドデータの取得（集計 → 最適化版の順）
     $current_timezone = isset($current_filters['timezone_filter']) ? $current_filters['timezone_filter'] : 'UTC';
-    if (function_exists('kssl_get_optimized_trend_data')) {
+    if ($agg !== null) {
+        $trend_data = $agg['trend'];
+    } elseif (function_exists('kssl_get_optimized_trend_data')) {
         $trend_data = kssl_get_optimized_trend_data($display_where_clauses, $display_params, $current_timezone);
     } else {
         $trend_data = kssl_get_trend_data($display_where_clauses, $display_params, $current_timezone);
@@ -67,6 +76,9 @@ function kssl_handle_settings_save() {
     if ( isset( $_POST['kssl_save_settings_nonce'] ) && wp_verify_nonce( sanitize_key($_POST['kssl_save_settings_nonce']), 'kssl_save_settings_action' ) ) {
         if (kssl_save_plugin_settings($_POST)) {
             $message = '<div class="notice notice-success is-dismissible"><p>' . esc_html__( '設定を保存しました。', 'kashiwazaki-seo-super-access-log' ) . '</p></div>';
+            if ( ! empty( $GLOBALS['kssl_settings_notice'] ) ) {
+                $message .= '<div class="notice notice-warning is-dismissible"><p>' . esc_html( $GLOBALS['kssl_settings_notice'] ) . '</p></div>';
+            }
         } else {
             $message = '<div class="notice notice-error is-dismissible"><p>' . esc_html__( '設定の保存に失敗しました。', 'kashiwazaki-seo-super-access-log' ) . '</p></div>';
         }
@@ -80,9 +92,10 @@ function kssl_handle_settings_save() {
  *
  * @param array $where_clauses WHERE句の配列
  * @param array $params パラメータの配列
+ * @param array $precomputed 集計から求めた値 (total_items / unique_visitors。null の値は生ログで数える)
  * @return array ログデータ
  */
-function kssl_get_log_data($where_clauses, $params) {
+function kssl_get_log_data($where_clauses, $params, $precomputed = []) {
     global $wpdb;
     $table_name = kssl_get_log_table_name_func();
     
@@ -109,19 +122,31 @@ function kssl_get_log_data($where_clauses, $params) {
     $offset_val = ( $current_page_num - 1 ) * $items_per_page;
 
     // データベースクエリの実行
-    $total_items_count = kssl_safe_db_query(
-        "SELECT COUNT(id) FROM {$table_name} {$where_sql}",
-        $params,
-        'get_var',
-        0
-    );
+    if ( isset( $precomputed['total_items'] ) ) {
+        $total_items_count = (int) $precomputed['total_items'];
+    } else {
+        $total_items_count = kssl_safe_db_query(
+            "SELECT COUNT(id) FROM {$table_name} {$where_sql}",
+            $params,
+            'get_var',
+            0
+        );
+    }
 
-    $unique_visitors_count = kssl_safe_db_query(
-        "SELECT COUNT(DISTINCT COALESCE(NULLIF(visitor_id_cookie, ''), ip_address)) FROM {$table_name} {$where_sql}",
-        $params,
-        'get_var',
-        0
-    );
+    // COUNT(DISTINCT ...) reads every row in the period: cache it (10 minutes, invalidated by the
+    // cache generation on deletion / import / migration / settings changes).
+    if ( isset( $precomputed['unique_visitors'] ) ) {
+        $unique_visitors_count = (int) $precomputed['unique_visitors'];
+    } else {
+        $unique_visitors_count = (int) kssl_aggregate_remember( 'uniq', $where_clauses, $params, '', function () use ( $table_name, $where_sql, $params ) {
+            return (int) kssl_safe_db_query(
+                "SELECT COUNT(DISTINCT COALESCE(NULLIF(visitor_id_cookie, ''), ip_address)) FROM {$table_name} {$where_sql}",
+                $params,
+                'get_var',
+                0
+            );
+        } );
+    }
 
     $total_pages_count = ceil( $total_items_count / $items_per_page );
 
@@ -403,7 +428,7 @@ function kssl_render_logs_tab($log_data, $current_filters) {
     echo '<p>' . sprintf(
         esc_html__('合計: %s ログ、ユニーク訪問者: %s', 'kashiwazaki-seo-super-access-log'),
         number_format_i18n($log_data['total_items']),
-        number_format_i18n($log_data['unique_visitors'])
+        ( ! empty( $log_data['unique_approx'] ) ? esc_html__( '約', 'kashiwazaki-seo-super-access-log' ) : '' ) . number_format_i18n($log_data['unique_visitors'])
     ) . '</p>';
     
     // フィルターフォームの表示
@@ -476,7 +501,7 @@ function kssl_render_trend_chart_section() {
 function kssl_render_statistics_chart_section() {
     global $wpdb;
     $table_name = kssl_get_log_table_name_func();
-    $total_logs = kssl_safe_db_query("SELECT COUNT(id) FROM {$table_name}", [], 'get_var', 0);
+    $total_logs = kssl_count_all_logs() ?? 0;
     $max_chart_records = intval(get_option(KSSL_MAX_CHART_RECORDS_OPTION_KEY, KSSL_DEFAULT_CHART_LIMIT));
     $enable_charts = ($max_chart_records === 0 || $total_logs <= $max_chart_records);
     

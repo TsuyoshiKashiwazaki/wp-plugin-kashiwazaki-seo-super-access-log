@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>絞り込み - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li class="active"><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>絞り込み</h1>
+        <p class="lead">期間や IP アドレス、ボットかどうかなど、16 の条件でログを絞り込めます。条件は一覧・合計・グラフのすべてに同時に効きます。</p>
+
+        <figure class="infographic">
+            <img src="images/infographics/ig-filters.png" alt="絞り込みのしくみ: 期間・項目・表示の時間帯の条件が、一覧・合計・グラフに同時に効く">
+            <figcaption>条件はすべて同時に（「かつ」で）効き、一覧・合計・グラフに反映されます</figcaption>
+        </figure>
+
+        <figure class="screenshot">
+            <img src="images/screenshots/11-main-filters.png" alt="絞り込みの入力欄" class="lightbox-trigger">
+            <figcaption>メインタブ上部の絞り込み欄</figcaption>
+        </figure>
+
+        <h2>使い方</h2>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>期間を選び、必要な条件を入力・選択します。空欄の条件は使われません。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>「<strong>フィルター</strong>」を押します。ページが読み直され、条件に合うログだけが表示されます。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>条件はページの URL に残ります。よく見る条件はブックマークしておくと、次から 1 回で開けます。初期状態に戻すには「<strong>フィルターをクリア</strong>」を押します（過去 1 ヶ月・UTC に戻ります）。</p></div></div>
+
+        <div class="callout callout-note">
+            <div class="callout-title">プルダウンの説明</div>
+            <p>名前のないプルダウンは、マウスを乗せると役割が表示されます（左から「期間プリセット」「ユーザーログイン状態でフィルター」「ボット検出でフィルター」「訪問タイプでフィルター」「ログソースでフィルター」）。</p>
+        </div>
+
+        <h2 id="period">期間</h2>
+        <p>左端のプルダウンで、表示する期間を選びます。初期値は「<strong>過去1ヶ月</strong>」です。</p>
+        <table>
+            <thead><tr><th style="width:25%;">選択肢</th><th>表示される期間</th></tr></thead>
+            <tbody>
+                <tr><td>過去24時間</td><td>今の時刻から、ちょうど 24 時間前までです。</td></tr>
+                <tr><td>過去1週間</td><td>1 週間前の日付の 0 時から、今日の終わりまでです（日付で数えるので最大 8 日分）。</td></tr>
+                <tr><td>過去1ヶ月</td><td>1 ヶ月前の同じ日の 0 時から、今日の終わりまでです。</td></tr>
+                <tr><td>過去3ヶ月 / 過去6ヶ月 / 過去12ヶ月</td><td>それぞれ 3・6・12 ヶ月前の同じ日から、今日の終わりまでです。</td></tr>
+                <tr><td>カスタム期間</td><td>「開始日」「終了日」の欄が現れ、好きな範囲を選べます。</td></tr>
+            </tbody>
+        </table>
+
+        <h3>カスタム期間</h3>
+        <figure class="screenshot">
+            <img src="images/screenshots/12-main-filters-custom.png" alt="カスタム期間を選んだときの開始日・終了日の欄" class="lightbox-trigger">
+            <figcaption>「カスタム期間」を選ぶと、開始日と終了日の欄が現れます</figcaption>
+        </figure>
+        <figure class="screenshot">
+            <img src="images/screenshots/13-main-datepicker.png" alt="日付を選ぶカレンダー" class="lightbox-trigger">
+            <figcaption>欄を押すとカレンダーが開きます（形式は 年-月-日）</figcaption>
+        </figure>
+        <ul>
+            <li>開始日はその日の 0:00:00 から、終了日はその日の 23:59:59 までが対象です。</li>
+            <li>片方だけ入れても使えます（開始日だけなら「その日以降すべて」）。</li>
+            <li>両方とも空のまま「フィルター」を押すと、期間の制限なし（すべての期間）になります。</li>
+            <li>ほかの期間から「カスタム期間」に切り替えると、それまで選んでいた期間の日付が入った状態で欄が現れます（上の画像は「過去12ヶ月」から切り替えたところ）。そこから日付を変えて使えます。</li>
+            <li>カスタム以外の期間に切り替えると、日付の欄は空に戻ります。</li>
+        </ul>
+        <div class="callout callout-note">
+            <div class="callout-title">補足</div>
+            <p>日付は、右端で選んだ「表示タイムゾーン」の日付として扱います。「Tokyo (JST)」を選んでいれば、日本時間の 0 時〜24 時です。</p>
+        </div>
+
+        <h2>文字で絞り込む条件（7 つ）</h2>
+        <p>入力した文字を<strong>含む</strong>ログが表示されます（ステータスだけは完全一致）。大文字と小文字は区別しません。</p>
+        <table>
+            <thead><tr><th style="width:22%;">条件</th><th>絞り込み方</th><th style="width:30%;">使い方の例</th></tr></thead>
+            <tbody>
+                <tr><td>IPアドレス</td><td>IP アドレスの一部に一致</td><td>ある相手のアクセスだけを見る。一覧の IP アドレスを押しても同じ絞り込みになります。</td></tr>
+                <tr><td>リクエストパス</td><td>開かれたページのパスの一部に一致</td><td><code>/blog/</code> でブログの記事だけを見る</td></tr>
+                <tr><td>ユーザーエージェント</td><td>ブラウザやボットの名前の一部に一致</td><td><code>Googlebot</code> で Google のクローラーだけを見る</td></tr>
+                <tr><td>リファラーURL</td><td>参照元の URL の一部に一致</td><td><code>google.</code> で Google から来た訪問を見る</td></tr>
+                <tr><td>国コード</td><td>国コードの一部に一致</td><td><code>JP</code> で日本からの訪問を見る</td></tr>
+                <tr><td>訪問者ID（Cookie）</td><td>訪問者 ID の一部に一致</td><td>ある訪問者がたどったページを順に見る</td></tr>
+                <tr><td>ステータス</td><td>応答の状態を表す番号（100〜599）と完全一致</td><td><code>404</code> で見つからなかったページを見る</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-tip">
+            <div class="callout-title">おすすめ</div>
+            <p>文字の条件を使うと、ログから直接数えるため表示に時間がかかることがあります。まず期間を短くしてから文字で絞り込むと速くなります。</p>
+        </div>
+
+        <h2>選んで絞り込む条件（4 つ）</h2>
+        <table>
+            <thead><tr><th style="width:22%;">条件（初期値）</th><th>選択肢と結果</th></tr></thead>
+            <tbody>
+                <tr><td>ユーザー（すべてのユーザー）</td><td>「すべてのユーザー」: 絞り込まない ／ 「ログイン中」: WordPress にログインしていた人のアクセスだけ ／ 「非ログイン」: ログインしていなかったアクセスだけ</td></tr>
+                <tr><td>ボット（すべて（ボット含む））</td><td>「すべて（ボット含む）」: 絞り込まない ／ 「ボット: はい」: ボットと判定したアクセスだけ ／ 「ボット: いいえ」: 人（ボットではない）と判定したアクセスだけ</td></tr>
+                <tr><td>訪問タイプ（すべての訪問タイプ）</td><td>「新規」「リピーター」「ページ遷移」「不明」のどれかだけ。決まり方は「<a href="recording.html#visit-type">記録のルール</a>」。「不明」は、主に CSV から取り込んだ記録で、訪問タイプの列がなかったものです。</td></tr>
+                <tr><td>ソース（すべてのソース）</td><td>「WordPress」: WordPress のページへのアクセス ／ 「静的ページ」: 静的ページの計測で記録したアクセス。CSV から取り込んだ記録だけを選ぶ選択肢はありません（「すべてのソース」で表示されます）。</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="include-suspicious">疑わしいアクセスを含める</h2>
+        <p>チェックボックスです。初期値は<strong>オフ</strong>です。</p>
+        <table>
+            <thead><tr><th style="width:15%;">状態</th><th>結果</th></tr></thead>
+            <tbody>
+                <tr><td>オフ</td><td>ページの URL か User-Agent に「疑わしいキーワード」（設定タブで決めます）を含むアクセスを、一覧・合計・グラフのすべてから除きます。攻撃の試みやスキャナーのアクセスで数字がふくらむのを防ぎます。</td></tr>
+                <tr><td>オン</td><td>それらのアクセスも含めて表示します。攻撃の試みがどれくらい来ているかを確かめたいときに使います。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-note">
+            <div class="callout-title">補足</div>
+            <p>ここで除くかどうかはキーワードだけで決まります。エラー（404 など）になったアクセスは、キーワードを含まなければ除かれません。一覧の赤い印（⚠）の基準とは少し違います。→ <a href="log-table.html#suspicious-mark">疑わしいアクセスの印</a></p>
+        </div>
+
+        <h2 id="timezone">表示タイムゾーン</h2>
+        <p>時刻の表示、日付の条件の区切り、アクセスの推移グラフの日付の区切りに使う時間帯です。初期値は「<strong>UTC (Default)</strong>」です。</p>
+        <table>
+            <thead><tr><th style="width:30%;">選択肢</th><th>時間帯</th></tr></thead>
+            <tbody>
+                <tr><td>UTC (Default)</td><td>世界標準時</td></tr>
+                <tr><td>Tokyo (JST)</td><td>日本時間（UTC より 9 時間進んでいます）</td></tr>
+                <tr><td>New York (EST/EDT)</td><td>米国東部時間</td></tr>
+                <tr><td>Los Angeles (PST/PDT)</td><td>米国太平洋時間</td></tr>
+                <tr><td>London (GMT/BST)</td><td>英国時間</td></tr>
+                <tr><td>Paris (CET/CEST)</td><td>中央ヨーロッパ時間</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>この画面は、WordPress の「一般設定」のタイムゾーンを使いません。日本のサイトでも初期値は UTC なので、日本時間で見るときは毎回「Tokyo (JST)」を選ぶか、選んだ状態の URL をブックマークしてください。なお、ログの削除とエクスポートの日付は、WordPress の「一般設定」のタイムゾーンで扱います。</p>
+        </div>
+
+        <h2>組み合わせの例</h2>
+        <table>
+            <thead><tr><th style="width:35%;">知りたいこと</th><th>条件</th></tr></thead>
+            <tbody>
+                <tr><td>検索エンジンのクローラーが来ているページ</td><td>ボット「ボット: はい」＋ ユーザーエージェント <code>Googlebot</code></td></tr>
+                <tr><td>AI のクローラーのアクセス</td><td>ボット「ボット: はい」＋ ユーザーエージェント <code>GPTBot</code>・<code>ClaudeBot</code> など</td></tr>
+                <tr><td>見つからないページ（リンク切れの手がかり）</td><td>ステータス <code>404</code> ＋ ボット「ボット: いいえ」</td></tr>
+                <tr><td>ある記事を読んだ人がどこから来たか</td><td>リクエストパスに記事の URL の一部 ＋ グラフの「リファラードメイン」</td></tr>
+                <tr><td>攻撃の試みが来ているか</td><td>「疑わしいアクセスを含める」をオン ＋ ステータス <code>404</code> や ユーザーエージェント</td></tr>
+            </tbody>
+        </table>
+
+        <nav class="page-nav">
+            <a href="main-screen.html" class="prev">&laquo; メイン画面の見方</a>
+            <a href="charts.html" class="next">グラフの見方 &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

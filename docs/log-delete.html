@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログの削除 - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li class="active"><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>ログの削除</h1>
+        <p class="lead">条件を指定してログを削除する方法と、すべてのログを削除する方法です。削除したログは元に戻せないので、手順と注意点をよく確認してください。</p>
+
+        <figure class="infographic">
+            <img src="images/infographics/ig-delete-flow.png" alt="条件を指定した削除の流れ: 条件を選ぶ・件数を確認・削除">
+            <figcaption>削除は「件数を確認」した範囲だけが対象です</figcaption>
+        </figure>
+
+        <div class="callout callout-warning">
+            <div class="callout-title">削除する前に</div>
+            <p>削除したログは元に戻せません。残しておきたいログは、先に「<a href="csv.html">CSV エクスポート</a>」で書き出してください。また、ログの保存形式を移し替えている途中は、削除の欄全体が操作できず「ログテーブルを新しい形式へ移行中のため、この操作は移行が終わるまで実行できません。」と表示されます。</p>
+        </div>
+        <p>自動クリーンアップがオフのときは「ログの保存期間が無期限になっています。設定で自動クリーンアップ（例: 180 日）を有効にすると、テーブルの肥大化による表示の遅さを防げます。」と案内が表示されます。→ <a href="settings-basic.html#auto-cleanup">自動クリーンアップ</a></p>
+
+        <h2>条件を指定して削除</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/40-lm-delete-conditions.png" alt="条件を指定して削除の欄" class="lightbox-trigger">
+            <figcaption>削除の条件を選ぶ欄</figcaption>
+        </figure>
+
+        <h3>条件の項目</h3>
+        <table>
+            <thead><tr><th style="width:30%;">項目（初期値）</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>削除対象期間（すべての期間）</td><td>「すべての期間」: 期間で絞らない ／ 「指定日より古いデータ」: 「基準日」の欄が現れ、その日の 0 時より前のログが対象 ／ 「指定期間内のデータ」: 「開始日」「終了日」の欄が現れ、その 2 日を含む日単位の範囲が対象</td></tr>
+                <tr><td>ボットのアクセスのみ削除（オフ）</td><td>ボットと判定したアクセスだけ</td></tr>
+                <tr><td>エラー（4xx, 5xx）のみ削除（オフ）</td><td>応答の番号が 400 以上のアクセスだけ</td></tr>
+                <tr><td>疑わしいアクセスのみ削除（オフ）</td><td>ページの URL に疑わしいキーワードを含むアクセスだけ（User-Agent は見ません）</td></tr>
+                <tr><td>特定のIPアドレス（空）</td><td>その IP アドレスと完全に一致するアクセスだけ</td></tr>
+            </tbody>
+        </table>
+        <ul>
+            <li>複数の条件を選ぶと、<strong>すべてに当てはまる</strong>ログだけが対象です（例: 「ボットのみ」と「エラーのみ」→ ボットのエラーだけ）。</li>
+            <li>条件を何も選ばないと、<strong>すべてのログ</strong>が対象になります。</li>
+            <li>日付は、WordPress の「一般設定」のタイムゾーンの 1 日として扱います（メインタブの表示タイムゾーンとは別です）。日付の形式が正しくないと「日付の形式が正しくありません (YYYY-MM-DD)。」と表示され、削除は行われません。</li>
+        </ul>
+        <figure class="screenshot">
+            <img src="images/screenshots/41-lm-delete-older-than.png" alt="指定日より古いデータを選んだ状態" class="lightbox-trigger">
+            <figcaption>「指定日より古いデータ」を選ぶと「基準日」の欄が現れます</figcaption>
+        </figure>
+        <figure class="screenshot">
+            <img src="images/screenshots/42-lm-delete-date-range.png" alt="指定期間内のデータを選んだ状態" class="lightbox-trigger">
+            <figcaption>「指定期間内のデータ」を選ぶと「開始日」「終了日」の欄が現れます</figcaption>
+        </figure>
+
+        <h3>手順</h3>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>条件を選びます。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>「<strong>削除対象件数を確認</strong>」を押します。件数を少しずつ数え、ボタンに「確認中... N%」と進み具合が表示されます。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>「<strong>削除対象: N 件</strong>　上記のログが削除されます。よろしいですか？」と表示されます。1 件以上あれば「<strong>ログを削除</strong>」が押せるようになります。</p></div></div>
+        <div class="step"><span class="step-number">4</span><div class="step-content"><p>「ログを削除」を押し、「選択した条件に合致するログを削除します。この操作は元に戻せません。続行しますか？」に「OK」を押します。</p></div></div>
+        <div class="step"><span class="step-number">5</span><div class="step-content"><p>「削除中... N% (M 件)」と進み、「✓ 削除完了! N 件のログを削除しました。」の後にページが開き直されます。</p></div></div>
+        <figure class="screenshot">
+            <img src="images/screenshots/43-lm-delete-count-result.png" alt="件数を確認した後の表示" class="lightbox-trigger">
+            <figcaption>件数を確認すると、削除の対象の件数が表示され、「ログを削除」が押せるようになります</figcaption>
+        </figure>
+
+        <h3>安全のためのしくみ</h3>
+        <table>
+            <thead><tr><th style="width:35%;">しくみ</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>確認した範囲だけを削除</td><td>「削除対象件数を確認」を押した時点の条件と範囲で削除します。確認した後に記録された新しいログは消しません。</td></tr>
+                <tr><td>条件を変えたら確認し直し</td><td>確認の後に条件を 1 つでも変えると、「ログを削除」は押せなくなり、件数の表示も消えます。もう一度「削除対象件数を確認」を押してください。</td></tr>
+                <tr><td>確認の前は押せない</td><td>「ログを削除」は、件数を確認するまで押せません。確認せずに削除しようとすると「先に「削除対象件数を確認」を押してください。」と表示されます。</td></tr>
+                <tr><td>ほかの処理と重ならない</td><td>インポートなど、ほかの大量の処理と同時には行いません。重なったときは「別の処理が実行中です。少し待ってから再度お試しください。」と表示されます。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>全ログ削除</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/44-lm-delete-all.png" alt="全ログ削除の欄" class="lightbox-trigger">
+            <figcaption>赤い枠の「全ログ削除」</figcaption>
+        </figure>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>「<strong>すべてのログを削除することを理解しました</strong>」にチェックを入れます。下のボタンが押せるようになります。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>「<strong>すべてのログを削除</strong>」を押し、「すべてのアクセスログを削除します。この操作は元に戻せません。本当に続行しますか？」に「OK」を押します。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>「✓ 全削除完了! すべてのログを削除しました。」の後にページが開き直されます。ボタンの下に「現在のログ件数: N 件」が表示されています。</p></div></div>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>すべてのログと、グラフ用の集計もまとめて消えます。削除の前に、必要なら CSV でエクスポートしてください。削除に失敗したときは、ボタンが押せないままになります。ページを開き直してから、もう一度行ってください。</p>
+        </div>
+
+        <nav class="page-nav">
+            <a href="log-management.html" class="prev">&laquo; データベースとキャッシュ</a>
+            <a href="csv.html" class="next">CSV エクスポート・インポート &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

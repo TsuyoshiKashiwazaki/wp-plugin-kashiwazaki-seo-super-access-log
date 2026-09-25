@@ -66,6 +66,14 @@ function kssl_handle_cookie_and_log_init_hook() {
         }
     }
 
+    // Empty User-Agent: refused here, before any output (the recording itself runs at shutdown,
+    // after the page has been sent). wp_die: "If $args is an integer, then it is treated as the
+    // response code" — the 'response' key is used for clarity.
+    if ( get_option( KSSL_BLOCK_EMPTY_UA_OPTION_KEY, false )
+        && trim( isset( $_SERVER['HTTP_USER_AGENT'] ) ? (string) wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) : '' ) === '' ) {
+        wp_die( esc_html__( 'Forbidden: User-Agent required', 'kashiwazaki-seo-super-access-log' ), '', [ 'response' => 403 ] );
+    }
+
     $full_cookie_name = kssl_get_full_cookie_name();
     $visitor_id_cookie_base = null;
     $visitor_id_suffix = KSSL_COOKIE_SUFFIX;
@@ -124,7 +132,8 @@ function kssl_handle_cookie_and_log_init_hook() {
     }
 
     // 静的ファイルの除外（オプション設定に基づく）
-    if (get_option(KSSL_EXCLUDE_STATIC_FILES_OPTION_KEY, '1') === '1') {
+    // Saved as int 1 by the settings form and as '1' by activation: compare as a string.
+    if ((string) get_option(KSSL_EXCLUDE_STATIC_FILES_OPTION_KEY, '1') === '1') {
         if (isset($_SERVER['REQUEST_URI'])) {
             $request_uri_path = parse_url(sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'])), PHP_URL_PATH);
             // カスタムパターンまたはデフォルトパターンを使用
@@ -148,7 +157,18 @@ function kssl_handle_cookie_and_log_init_hook() {
     $cookie_path = defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/';
     $cookie_domain = defined('COOKIE_DOMAIN') && COOKIE_DOMAIN ? COOKIE_DOMAIN : '';
 
-    if (!headers_sent()) {
+    // Re-sending the cookie on every page view makes every response carry Set-Cookie.
+    // Refresh it only when needed; the stored visit_type does not distinguish
+    // returning_session from returning, so a last_visit up to 5 minutes old changes nothing stored.
+    $cookie_refresh_interval = (int) apply_filters( 'kssl_cookie_refresh_interval', 5 * MINUTE_IN_SECONDS );
+    $cookie_is_fresh = is_array( $visitor_data )
+        && isset( $visitor_data['vid_base'], $visitor_data['last_visit'] )
+        && $visitor_data['vid_base'] === $visitor_id_cookie_base
+        && is_numeric( $visitor_data['last_visit'] )
+        && ( $current_time - (int) $visitor_data['last_visit'] ) >= 0
+        && ( $current_time - (int) $visitor_data['last_visit'] ) < $cookie_refresh_interval;
+
+    if (!headers_sent() && ! $cookie_is_fresh) {
         setcookie(
             $full_cookie_name,
             wp_json_encode( $new_visitor_data ),
@@ -161,6 +181,28 @@ function kssl_handle_cookie_and_log_init_hook() {
                 'samesite' => 'Lax'
             ]
         );
+    }
+
+    // The visitor as decided for this request (the /track endpoint records with the same id and the
+    // cookie just sent, instead of reading a cookie that the browser does not have yet).
+    $GLOBALS['kssl_current_visitor'] = [
+        'vid_base'   => $visitor_id_cookie_base,
+        'visit_type' => $cookie_visit_type,
+    ];
+
+    // Not page views: the static tracker's own call (recorded by the endpoint), REST and admin-ajax
+    // requests (block editor, autosave, plugin screens, theme scripts). Sites can opt them in.
+    if ( kssl_is_own_track_request() ) {
+        return;
+    }
+    if ( wp_doing_ajax() && ! apply_filters( 'kssl_log_ajax_requests', false ) ) {
+        return;
+    }
+    if ( kssl_is_rest_path_request() && ! apply_filters( 'kssl_log_rest_requests', false ) ) {
+        return;
+    }
+    if ( kssl_is_skipped_ajax_action() ) {
+        return;
     }
 
     $bot_detection_pattern = KSSL_Request_Cache::get_bot_detection_pattern();
@@ -199,14 +241,6 @@ function kssl_record_access_log_func( $cookie_visit_type = 'new', $source = 'wor
     $referer_url_val = isset( $_SERVER['HTTP_REFERER'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) ) : '';
     $request_method_val = isset( $_SERVER['REQUEST_METHOD'] ) ? substr( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ), 0, 10 ) : '';
     $current_user_id = ($source === 'wordpress') ? get_current_user_id() : null;
-
-    // 国コード取得：まずヘッダーから（常に実行、軽量）
-    $country_code_val = kssl_get_country_code_from_headers();
-
-    // ヘッダーから取得できず、かつIPルックアップが有効な場合のみ外部API呼び出し
-    if ($country_code_val === null && KSSL_Request_Cache::get_enable_country_lookup()) {
-        $country_code_val = kssl_get_country_code_from_ip_func($ip_address_val);
-    }
 
     if ($source === 'static' && !empty($static_data)) {
         $user_agent_val = isset($static_data['ua']) ? sanitize_text_field( wp_unslash($static_data['ua'])) : $user_agent_val;
@@ -271,20 +305,26 @@ function kssl_record_access_log_func( $cookie_visit_type = 'new', $source = 'wor
         return;
     }
 
-    // User-Agentが空のアクセスの処理
+    // 国コード取得：まずヘッダーから（常に実行、軽量）
+    $country_code_val = kssl_get_country_code_from_headers();
+
+    // ヘッダーから取得できず、IPルックアップが有効で、ボットでない場合のみ外部API呼び出し
+    if ($country_code_val === null && !$is_bot_val && KSSL_Request_Cache::get_enable_country_lookup()) {
+        $country_code_val = kssl_get_country_code_from_ip_func($ip_address_val);
+    }
+
+    // Empty User-Agent: not recorded (refusing the request, when enabled, happens in the init hook
+    // before any output)
     if (empty($user_agent_val)) {
-        // チェックがオンの場合はアクセスをブロック（403エラー）
-        if (get_option(KSSL_BLOCK_EMPTY_UA_OPTION_KEY, false)) {
-            wp_die(__('Forbidden: User-Agent required', 'kashiwazaki-seo-super-access-log'), 403);
-            return;
-        }
-        // デフォルト: 記録しない（アクセスは許可するが、ログに残さない）
         return;
     }
 
-    $table_name = kssl_get_log_table_name_func();
-    $wpdb->insert(
-        $table_name,
+    // Requests matching the excluded URI patterns are not recorded (as the setting describes)
+    if (kssl_uri_is_excluded($request_uri_val)) {
+        return;
+    }
+
+    kssl_insert_log_row(
         [
             'access_time'    => current_time( 'mysql', 1 ),
             'ip_address'     => $ip_address_val,
@@ -300,8 +340,7 @@ function kssl_record_access_log_func( $cookie_visit_type = 'new', $source = 'wor
             'visitor_id_cookie' => $visitor_id_from_cookie,
             'country_code'   => $country_code_val,
             'navigation_type'=> 'deprecated',
-        ],
-        [ '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s' ]
+        ]
     );
 }
 
@@ -318,45 +357,52 @@ function kssl_admin_session_start_hook() {
  */
 function kssl_cleanup_old_logs() {
     global $wpdb;
-    
-    // 自動クリーンアップが有効かチェック
+
     if (!get_option('kssl_enable_auto_cleanup', 0)) {
         return;
     }
-    
-    // 保存期間を取得
     $retention_days = intval(get_option('kssl_log_retention_days', 0));
     if ($retention_days <= 0) {
         return;
     }
-    
-    $table_name = kssl_get_log_table_name_func();
-    $cutoff_date = date('Y-m-d H:i:s', strtotime("-{$retention_days} days"));
-    
-    // バッチ処理で削除（一度に大量のレコードを削除しないように）
-    $batch_size = 1000;
-    $deleted_total = 0;
-    
-    do {
-        $deleted = $wpdb->query(
-            $wpdb->prepare(
-                "DELETE FROM {$table_name} WHERE access_time < %s LIMIT %d",
-                $cutoff_date,
-                $batch_size
-            )
-        );
-        $deleted_total += $deleted;
-        
-        // 少し待機してサーバー負荷を軽減
-        if ($deleted > 0) {
-            usleep(100000); // 0.1秒待機
+    kssl_schedule_once( 'kssl_cleanup_old_logs_continue', 60 );
+    if ( ! kssl_job_lock() ) {
+        return;
+    }
+    try {
+        if ( kssl_migration_blocks_writes() ) {
+            return;
         }
-    } while ($deleted >= $batch_size);
-    
-    // クリーンアップの実行をログに記録（オプション）
-    if ($deleted_total > 0) {
-        update_option('kssl_last_cleanup_date', current_time('mysql'));
-        update_option('kssl_last_cleanup_count', $deleted_total);
+        $table_name = kssl_get_log_table_name_func();
+        $cutoff_date = gmdate('Y-m-d H:i:s', time() - $retention_days * DAY_IN_SECONDS);
+        // The aggregates of the hours up to the cutoff stop being used before any row changes.
+        if ( ! kssl_agg_mark_dirty_before( $cutoff_date ) ) {
+            return;
+        }
+        $deleted_total = 0;
+        $start = microtime( true );
+        do {
+            $deleted = $wpdb->query( $wpdb->prepare(
+                "DELETE FROM {$table_name} WHERE access_time < %s ORDER BY access_time LIMIT %d",
+                $cutoff_date,
+                1000
+            ) );
+            if ( $deleted === false ) {
+                break;
+            }
+            $deleted_total += $deleted;
+        } while ( $deleted >= 1000 && microtime( true ) - $start < KSSL_JOB_TIME_BUDGET );
+
+        if ( $deleted_total > 0 ) {
+            update_option('kssl_last_cleanup_date', current_time('mysql'));
+            update_option('kssl_last_cleanup_count', $deleted_total);
+            kssl_bump_cache_generation();
+        }
+        if ( $deleted === false || $deleted < 1000 ) {
+            wp_clear_scheduled_hook( 'kssl_cleanup_old_logs_continue' );
+        }
+    } finally {
+        kssl_job_unlock();
     }
 }
 
@@ -394,3 +440,50 @@ function kssl_unschedule_cleanup_cron() {
 
 // Cronアクションを登録
 add_action('kssl_cleanup_old_logs', 'kssl_cleanup_old_logs');
+add_action('kssl_cleanup_old_logs_continue', 'kssl_cleanup_old_logs');
+
+/**
+ * True for the REST call that the static-page tracker sends to this plugin: that visit is
+ * recorded once as source=static by the endpoint itself.
+ */
+function kssl_is_own_track_request() {
+    $route = '/kashiwazaki-seo-super-access-log/v1/track';
+    if ( isset( $_GET['rest_route'] ) && untrailingslashit( sanitize_text_field( wp_unslash( $_GET['rest_route'] ) ) ) === $route ) {
+        return true;
+    }
+    if ( ! isset( $_SERVER['REQUEST_URI'] ) ) {
+        return false;
+    }
+    $path = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
+    $prefix = '/' . trim( rest_get_url_prefix(), '/' );
+    $pos = strpos( $path, $prefix . $route );
+    return $pos !== false && untrailingslashit( substr( $path, $pos + strlen( $prefix ) ) ) === $route;
+}
+
+/**
+ * True for a REST API request (checked at init, before WordPress defines REST_REQUEST): either
+ * ?rest_route= or a path under the REST prefix (/wp-json by default).
+ */
+function kssl_is_rest_path_request() {
+    if ( isset( $_GET['rest_route'] ) ) {
+        return true;
+    }
+    if ( ! isset( $_SERVER['REQUEST_URI'] ) ) {
+        return false;
+    }
+    $path = (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ), PHP_URL_PATH );
+    $home_path = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+    $prefix = rtrim( $home_path, '/' ) . '/' . trim( rest_get_url_prefix(), '/' );
+    return $path === $prefix || strpos( $path, $prefix . '/' ) === 0;
+}
+
+/**
+ * True for admin-ajax actions that are not visits (WordPress Heartbeat by default).
+ */
+function kssl_is_skipped_ajax_action() {
+    if ( ! wp_doing_ajax() || ! isset( $_REQUEST['action'] ) ) {
+        return false;
+    }
+    $skipped = (array) apply_filters( 'kssl_skip_logging_ajax_actions', [ 'heartbeat' ] );
+    return in_array( sanitize_key( wp_unslash( $_REQUEST['action'] ) ), $skipped, true );
+}

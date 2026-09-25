@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用語集 - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li class="active"><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>用語集</h1>
+        <p class="lead">このマニュアルと管理画面に出てくる用語を、五十音順ではなく関連する順にまとめました。</p>
+
+        <h2>アクセスと訪問者</h2>
+        <table>
+            <thead><tr><th style="width:25%;">用語</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>ログ</td><td>1 件のアクセスの記録。日時・ページ・IP アドレス・ブラウザなどを含みます。</td></tr>
+                <tr><td>訪問者 ID</td><td>訪問者を見分けるために、プラグインがランダムに作る ID。訪問者のブラウザの Cookie に保存します。</td></tr>
+                <tr><td>Cookie（クッキー）</td><td>サイトが訪問者のブラウザに保存する小さなデータ。このプラグインは訪問者 ID を保存します。</td></tr>
+                <tr><td>ユニーク訪問者</td><td>重複を除いた訪問者の数。訪問者 ID で数え、ID がない記録は IP アドレスで数えます。</td></tr>
+                <tr><td>訪問タイプ</td><td>新規・リピーター・ページ遷移・不明の 4 つ。→ <a href="recording.html#visit-type">訪問タイプの決まり方</a></td></tr>
+                <tr><td>新規</td><td>訪問の記録（Cookie）がない訪問。初めての訪問や、Cookie の期限が切れた訪問です。</td></tr>
+                <tr><td>リピーター</td><td>Cookie があり、ほかのサイトから、または直接来た訪問。</td></tr>
+                <tr><td>ページ遷移</td><td>Cookie があり、このサイトのページから来た訪問（サイトの中の移動）。</td></tr>
+                <tr><td>ソース</td><td>記録の出どころ。WordPress のページ・静的ページ・CSV からの取り込み（Import）。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>リクエストの情報</h2>
+        <table>
+            <thead><tr><th style="width:25%;">用語</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>IP アドレス</td><td>インターネット上の住所にあたる番号。アクセス元のネットワークを表します。</td></tr>
+                <tr><td>User-Agent（ユーザーエージェント）</td><td>ブラウザやボットが名乗る名前。ブラウザの種類・OS・ボットの名前などが入ります。</td></tr>
+                <tr><td>リファラー（参照元）</td><td>そのページに来る直前に見ていたページの URL。</td></tr>
+                <tr><td>リクエストパス</td><td>開かれたページの、ドメインより後ろの部分（例: <code>/blog/article/</code>）。</td></tr>
+                <tr><td>メソッド</td><td>リクエストの方式。ページを見るときは GET、フォームを送るときは POST など。</td></tr>
+                <tr><td>ステータス（ステータスコード）</td><td>サーバーの応答の状態を表す番号。200 は成功、404 は見つからない、500 番台はサーバーのエラー。</td></tr>
+                <tr><td>国コード</td><td>国を表す 2 文字のコード（JP、US など）。LAN は社内などのネットワーク。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>判定と防御</h2>
+        <table>
+            <thead><tr><th style="width:25%;">用語</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>ボット（クローラー）</td><td>人ではなくプログラムが行うアクセス。検索エンジン・SEO ツール・AI のクローラーなど。</td></tr>
+                <tr><td>ボット検出パターン</td><td>User-Agent からボットを見分けるための、文字のパターン（正規表現）。</td></tr>
+                <tr><td>正規表現</td><td>文字のパターンを表す書き方。<code>|</code> は「または」を意味します。</td></tr>
+                <tr><td>疑わしいアクセス</td><td>URL や User-Agent に、攻撃の試みに多い文字列（疑わしいキーワード）を含むアクセス。</td></tr>
+                <tr><td>除外（ログ除外URIパターン）</td><td>記録しないページの指定。アクセス自体は許可します。</td></tr>
+                <tr><td>ブロック</td><td>アクセス自体を拒否すること。訪問者 ID・User-Agent・User-Agent が空、の 3 つの方法があります。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>データと管理</h2>
+        <table>
+            <thead><tr><th style="width:25%;">用語</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>軽量な形式（軽量化）</td><td>1.0.1 からのログの保存形式。容量が小さく、表示が速くなります。以前の形式から自動で移し替えます。</td></tr>
+                <tr><td>集計</td><td>合計・グラフを速く表示するため、裏で自動的に作っている 1 時間ごとのまとめ。</td></tr>
+                <tr><td>キャッシュ</td><td>一度作った表示用のデータを、しばらく保存して使い回すこと。</td></tr>
+                <tr><td>自動クリーンアップ</td><td>保存期間を過ぎたログを、1 日 1 回自動で削除する機能。</td></tr>
+                <tr><td>統計情報の更新</td><td>データベースが検索のしかたを決めるための情報を最新にすること。</td></tr>
+                <tr><td>断片化</td><td>削除などで生じた、データベースの中の空き領域の割合。</td></tr>
+                <tr><td>インデックス（索引）</td><td>データベースの検索を速くするための索引。</td></tr>
+                <tr><td>CSV</td><td>項目をカンマで区切った文字のファイル。表計算ソフトで開けます。</td></tr>
+                <tr><td>エクスポート / インポート</td><td>ログをファイルに書き出すこと / ファイルからログを取り込むこと。</td></tr>
+                <tr><td>WP-Cron</td><td>WordPress の予約実行のしくみ。サイトへのアクセスをきっかけに、予定した処理を動かします。</td></tr>
+                <tr><td>表示タイムゾーン</td><td>メインタブで時刻を表示するときの時間帯。初期値は UTC（世界標準時）。</td></tr>
+                <tr><td>静的ページ</td><td>WordPress を使わず、HTML ファイルだけで作ったページ。</td></tr>
+            </tbody>
+        </table>
+
+        <nav class="page-nav">
+            <a href="troubleshooting.html" class="prev">&laquo; 困ったとき</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

@@ -42,19 +42,40 @@ function kssl_save_plugin_settings($post_data) {
         $raw_keywords = wp_unslash($post_data['kssl_suspicious_keywords']);
         // 改行文字のみ統一し、バックスラッシュはそのまま保持
         $normalized_keywords = str_replace(["\r\n", "\r"], "\n", $raw_keywords);
-        update_option(KSSL_SUSPICIOUS_KEYWORDS_OPTION_KEY, $normalized_keywords);
+        $current_keywords = (string) get_option(KSSL_SUSPICIOUS_KEYWORDS_OPTION_KEY, KSSL_DEFAULT_SUSPICIOUS_KEYWORDS);
+        if ($normalized_keywords !== $current_keywords) {
+            if (kssl_migration_blocks_writes()) {
+                // The stored flags are being rebuilt by the table migration; keep the old keywords.
+                $GLOBALS['kssl_settings_notice'] = __('テーブル移行中のため、疑わしいキーワードの変更は保存されませんでした。移行完了後にもう一度保存してください。', 'kashiwazaki-seo-super-access-log');
+            } else {
+                update_option(KSSL_SUSPICIOUS_KEYWORDS_OPTION_KEY, $normalized_keywords);
+                // Existing rows are re-flagged in the background; until then filters use the keyword match.
+                kssl_start_reclassification();
+            }
+        }
     }
 
-    // その他のテキストエリア設定の保存
+    // その他のテキストエリア設定の保存 ($_POST は WordPress がスラッシュを付けているので wp_unslash してから保存する。
+    // しないと保存のたびに \ や引用符の前のバックスラッシュが増える)
     $text_settings = [
         'kssl_excluded_uri_patterns' => KSSL_EXCLUDED_URI_PATTERNS_OPTION_KEY,
-        'kssl_bot_detection_pattern_setting' => KSSL_BOT_DETECTION_PATTERN_OPTION_KEY,
         KSSL_BLOCKED_UAS_OPTION_KEY => KSSL_BLOCKED_UAS_OPTION_KEY,
     ];
 
     foreach ($text_settings as $post_key => $option_key) {
-        if (array_key_exists($post_key, $post_data)) {
-            update_option($option_key, sanitize_textarea_field($post_data[$post_key]));
+        if (array_key_exists($post_key, $post_data) && is_string($post_data[$post_key])) {
+            update_option($option_key, sanitize_textarea_field(wp_unslash($post_data[$post_key])));
+        }
+    }
+
+    // ボット検出パターン: 正規表現なので sanitize_textarea_field (タグを取り除く) は通さず、
+    // 正規表現として使えるものだけを保存する (壊れたパターンは毎リクエストの判定を失敗させる)
+    if (array_key_exists('kssl_bot_detection_pattern_setting', $post_data) && is_string($post_data['kssl_bot_detection_pattern_setting'])) {
+        $bot_pattern = trim(str_replace(["\r\n", "\r", "\n", "\0"], '', wp_unslash($post_data['kssl_bot_detection_pattern_setting'])));
+        if ($bot_pattern !== '' && @preg_match($bot_pattern, '') === false) {
+            $GLOBALS['kssl_settings_notice'] = trim(($GLOBALS['kssl_settings_notice'] ?? '') . ' ' . __('ボット検出パターンが正規表現として正しくないため、変更は保存されませんでした。', 'kashiwazaki-seo-super-access-log'));
+        } else {
+            update_option(KSSL_BOT_DETECTION_PATTERN_OPTION_KEY, $bot_pattern);
         }
     }
 
@@ -71,7 +92,7 @@ function kssl_save_plugin_settings($post_data) {
         update_option(KSSL_BLOCKED_VISITORS_OPTION_KEY, array_unique($sanitized_visitor_ids));
     }
 
-    // 自動クリーンアップの設定
+    // 自動クリーンアップの設定 (予定の登録・解除は保存期間を保存した後に行う)
     $enable_auto_cleanup = isset($post_data['kssl_enable_auto_cleanup']) ? 1 : 0;
     update_option(KSSL_ENABLE_AUTO_CLEANUP_OPTION_KEY, $enable_auto_cleanup);
     
@@ -90,6 +111,9 @@ function kssl_save_plugin_settings($post_data) {
         
         update_option(KSSL_LOG_RETENTION_DAYS_OPTION_KEY, $retention_days);
     }
+    // The daily cleanup event follows the setting (it used to be scheduled only on activation,
+    // so turning the option on later never removed anything).
+    kssl_schedule_cleanup_cron();
     
     // チャート表示の最大レコード数の設定
     $chart_limit_type = isset($post_data['kssl_chart_limit_type']) ? sanitize_text_field($post_data['kssl_chart_limit_type']) : 'preset';
@@ -145,5 +169,7 @@ function kssl_save_plugin_settings($post_data) {
     // User-Agentが空のアクセスをブロックする設定
     update_option(KSSL_BLOCK_EMPTY_UA_OPTION_KEY, isset($post_data[KSSL_BLOCK_EMPTY_UA_OPTION_KEY]) ? 1 : 0);
 
+    // Settings can change what the aggregates show (exclusions, chart limit): drop cached aggregates.
+    kssl_bump_cache_generation();
     return true;
 }

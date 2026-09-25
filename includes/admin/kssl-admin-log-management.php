@@ -221,7 +221,7 @@ function kssl_get_database_statistics() {
     $index_count = count(array_unique(wp_list_pluck($indexes, 'Key_name')));
 
     // 実際のレコード数を取得
-    $total_records = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
+    $total_records = kssl_count_all_logs();
 
     // 断片化率を計算 (data_free / (data_length + data_free) * 100)
     $fragmentation_percent = 0;
@@ -364,79 +364,75 @@ function kssl_generate_warnings($stats) {
 }
 
 /**
- * データベース最適化セクション
+ * データベース最適化セクション: 軽量化の移行パネルと統計情報の更新
  */
 function kssl_display_database_optimization_section() {
-    // 自動最適化の設定を取得
-    $auto_optimize_enabled = get_option('kssl_auto_optimization_enabled', '1');
-
-    // 次の最適化予定を取得
-    $next_optimization = wp_next_scheduled('kssl_monthly_optimization');
-    $next_optimization_html = '';
-
-    if ($auto_optimize_enabled === '1') {
-        if ($next_optimization) {
-            $next_time = get_date_from_gmt(date('Y-m-d H:i:s', $next_optimization), 'Y年m月d日 H:i');
-            $days_until = ceil(($next_optimization - time()) / 86400);
-            $next_optimization_html = sprintf(
-                '<div style="background: #e6f3ff; padding: 10px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #0073aa;">'.
-                '<strong>📅 次回の自動最適化:</strong> %s（約%d日後）'.
-                '</div>',
-                esc_html($next_time),
-                $days_until
-            );
-        } else {
-            $next_optimization_html = '<div style="background: #fff8e6; padding: 10px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #f0ad4e;">'.
-                '<strong>⚠️ 注意:</strong> 自動最適化がスケジュールされていません。プラグインを再有効化してください。'.
-                '</div>';
-        }
-    } else {
-        $next_optimization_html = '<div style="background: #f0f0f0; padding: 10px; border-radius: 4px; margin: 15px 0; border-left: 4px solid #999;">'.
-            '<strong>ℹ️ 自動最適化は無効になっています。</strong> 手動で最適化を実行してください。'.
-            '</div>';
-    }
+    global $wpdb;
+    $state = kssl_migration_detect_state();
+    $info = kssl_migration_state();
+    $t = kssl_migration_tables();
+    $post_url = admin_url( 'admin-post.php' );
     ?>
     <div class="kssl-optimization-section">
-        <h3>🔧 データベース最適化</h3>
+        <h3>🔧 データベースの軽量化</h3>
         <div style="padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: white; margin-bottom: 20px;">
-            <!-- 自動最適化のオン/オフ設定 -->
-            <div style="background: #f8f8f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; border-left: 4px solid #0073aa;">
-                <label style="display: flex; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="kssl-auto-optimize-toggle" <?php checked($auto_optimize_enabled, '1'); ?> style="margin-right: 8px;">
-                    <strong style="font-size: 14px;">⚙️ 月1回の自動最適化を有効にする（WP-Cron）</strong>
-                </label>
-                <p style="margin: 8px 0 0 24px; font-size: 12px; color: #666;">無効にすると、自動最適化は実行されません。手動での最適化のみとなります。</p>
-            </div>
-
-            <p style="color: #0073aa; font-weight: bold; margin-bottom: 8px;">💡 自動最適化について</p>
-            <p style="margin-bottom: 12px;">データベースの最適化は以下のタイミングで自動的に実行されます：</p>
+        <?php if ( $state === 'done' || $state === 'missing' ) : ?>
+            <p>✅ ログテーブルは軽量な形式です。</p>
+            <?php if ( ! kssl_suspicious_flag_is_current() ) : ?>
+                <p>⏳ 疑わしいアクセスの判定を更新中です (完了までは従来の方法で絞り込みます)。</p>
+            <?php endif; ?>
+        <?php elseif ( $state === 'not_started' ) : ?>
+            <?php
+            $rows = kssl_estimated_rows( $t['main'] );
+            $size_mb = (float) $wpdb->get_var( $wpdb->prepare(
+                'SELECT ROUND((data_length + index_length) / 1048576, 1) FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s',
+                $t['main']
+            ) );
+            ?>
+            <p>ログテーブルは旧形式です (約 <?php echo esc_html( number_format_i18n( $rows ) ); ?> 行 / <?php echo esc_html( $size_mb ); ?> MB)。軽量な形式へ移すと、記録と管理画面が速くなります。</p>
             <ul style="margin: 10px 0 15px 20px; list-style: disc;">
-                <li><strong>プラグイン有効化時:</strong> インデックス作成と初期最適化を実行</li>
-                <li><strong>月1回（WP-Cron）:</strong> 定期的なメンテナンスを自動実行</li>
+                <li>移行はバックグラウンドで少しずつ進みます。移行中も記録と閲覧はそのまま使えます。</li>
+                <li>移行中は、移し終えるまで一時的に同程度のデータベース容量を使います。</li>
+                <li>移行中は、ログの削除・CSV インポート・自動クリーンアップ・キーワードの変更はできません。</li>
             </ul>
+            <?php if ( ! empty( $info['failed'] ) ) : ?>
+                <p style="color: #d63638;">前回の移行は失敗しました: <?php echo esc_html( $info['failed'] ); ?> (データは旧テーブルのまま使えます)</p>
+            <?php endif; ?>
+            <form method="post" action="<?php echo esc_url( $post_url ); ?>">
+                <input type="hidden" name="action" value="kssl_migration_start">
+                <?php wp_nonce_field( 'kssl_migration_start' ); ?>
+                <button type="submit" class="button button-primary">軽量化の移行を開始する</button>
+            </form>
+        <?php else : ?>
+            <?php
+            $old = in_array( $state, [ 'copy' ], true ) ? $t['main'] : $t['legacy'];
+            $old_max = kssl_table_exists( $old ) ? (int) $wpdb->get_var( "SELECT COALESCE(MAX(id), 0) FROM {$old}" ) : 0;
+            if ( $state === 'copy' ) {
+                $done = kssl_table_exists( $t['new'] ) ? (int) $wpdb->get_var( "SELECT COALESCE(MAX(id), 0) FROM {$t['new']}" ) : 0;
+                $label = 'コピー中';
+            } else {
+                $done = (int) ( $info['verify_cursor'] ?? 0 );
+                $label = '照合中';
+            }
+            $pct = $old_max > 0 ? min( 100, floor( $done * 100 / $old_max ) ) : 0;
+            ?>
+            <p>⏳ 軽量化の移行: <?php echo esc_html( $label ); ?> (<?php echo esc_html( $pct ); ?>%)。移行中も記録と閲覧はそのまま使えます。</p>
+            <p style="font-size: 12px; color: #666;">最終更新: <?php echo esc_html( ! empty( $info['updated_at'] ) ? get_date_from_gmt( gmdate( 'Y-m-d H:i:s', (int) $info['updated_at'] ), 'Y-m-d H:i:s' ) : '-' ); ?></p>
+            <?php if ( ! empty( $info['verify_failed'] ) ) : ?>
+                <p style="color: #d63638;">照合で不一致があったため、旧テーブルを残しています: <?php echo esc_html( $info['verify_failed'] ); ?></p>
+            <?php endif; ?>
+            <?php if ( ! empty( $info['verify_failed'] ) || ( ! empty( $info['updated_at'] ) && time() - (int) $info['updated_at'] > 10 * MINUTE_IN_SECONDS ) ) : ?>
+                <form method="post" action="<?php echo esc_url( $post_url ); ?>">
+                    <input type="hidden" name="action" value="kssl_migration_resume">
+                    <?php wp_nonce_field( 'kssl_migration_resume' ); ?>
+                    <button type="submit" class="button">移行を再開する</button>
+                </form>
+            <?php endif; ?>
+        <?php endif; ?>
 
-            <?php echo $next_optimization_html; ?>
-
-            <details style="margin-top: 15px;">
-                <summary style="cursor: pointer; color: #0073aa; font-weight: 600;">🔍 自動最適化の内容を見る</summary>
-                <ul style="margin: 10px 0 0 20px; list-style: circle; color: #666;">
-                    <li>✅ インデックスの作成・更新（高速検索のため）</li>
-                    <li>✅ テーブルの最適化（断片化の解消）</li>
-                    <li>✅ 統計情報の更新（クエリプランの改善）</li>
-                    <li>❌ データの削除は行いません</li>
-                </ul>
-            </details>
-
-            <div style="margin-top: 15px; padding: 10px; background: #f8f8f8; border-radius: 4px; font-size: 12px; color: #666;">
-                <strong>💡 WP-Cronとは？</strong><br>
-                WordPressの疑似cronシステムです。サイトへの訪問時に実行されるため、<strong>設定不要で自動的に動作</strong>します。<br>
-                トラフィックが少ないサイトでは実行が遅れる場合がありますが、下のボタンから手動実行も可能です。
-            </div>
-
-            <p style="font-size: 13px; color: #666; margin-top: 15px;">必要に応じて手動で最適化を実行することもできます：</p>
-            <button type="button" id="kssl-optimize-indexes-btn" class="button button-primary">
-                今すぐデータベースを最適化
-            </button>
+            <hr style="margin: 20px 0;">
+            <p style="font-size: 13px; color: #666;">統計情報の更新 (ANALYZE TABLE。数秒で終わります。大量に削除した後などに):</p>
+            <button type="button" id="kssl-optimize-indexes-btn" class="button">統計情報を更新</button>
             <div id="kssl-optimize-result" style="margin-top: 10px; padding: 10px; display: none;"></div>
         </div>
     </div>
@@ -753,10 +749,18 @@ function kssl_get_cache_statistics() {
 function kssl_display_log_deletion_section() {
     global $wpdb;
     $table_name = kssl_get_log_table_name_func();
-    $total_logs = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
+    $total_logs = kssl_count_all_logs();
     ?>
     <div class="kssl-log-deletion-section">
         <h3>🗑️ ログ削除</h3>
+        <?php $kssl_writes_blocked = kssl_migration_blocks_writes(); ?>
+        <?php if ( $kssl_writes_blocked ) : ?>
+            <div class="notice notice-warning inline"><p><?php echo esc_html( kssl_migration_block_message() ); ?></p></div>
+            <fieldset disabled style="border: 0; padding: 0; margin: 0; min-width: 0;">
+        <?php endif; ?>
+        <?php if ( ! get_option( KSSL_ENABLE_AUTO_CLEANUP_OPTION_KEY, 0 ) ) : ?>
+            <div class="notice notice-info inline"><p>ログの保存期間が無期限になっています。設定で自動クリーンアップ（例: 180 日）を有効にすると、テーブルの肥大化による表示の遅さを防げます。</p></div>
+        <?php endif; ?>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
             <!-- 条件付き削除 -->
@@ -836,6 +840,9 @@ function kssl_display_log_deletion_section() {
                 </div>
             </div>
         </div>
+        <?php if ( $kssl_writes_blocked ) : ?>
+            </fieldset>
+        <?php endif; ?>
 
         <div id="kssl-delete-result" style="margin-top: 10px; padding: 10px; display: none;"></div>
     </div>
@@ -938,6 +945,11 @@ function kssl_display_csv_operations_section() {
             <div style="padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: white;">
                 <h4>📥 データインポート</h4>
                 <p style="color: #666; margin-bottom: 15px;">CSVファイルからアクセスログデータをインポートします。正しいフォーマットのCSVファイルを使用してください。</p>
+                <?php $kssl_import_blocked = kssl_migration_blocks_writes(); ?>
+                <?php if ( $kssl_import_blocked ) : ?>
+                    <div class="notice notice-warning inline"><p><?php echo esc_html( kssl_migration_block_message() ); ?></p></div>
+                    <fieldset disabled style="border: 0; padding: 0; margin: 0; min-width: 0;">
+                <?php endif; ?>
 
                 <div style="margin-bottom: 15px; padding: 10px; background: #e6f3ff; border-radius: 4px; border-left: 4px solid #0073aa;">
                     <p style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600;">📝 CSVフォーマットが不明な場合</p>
@@ -1023,6 +1035,9 @@ function kssl_display_csv_operations_section() {
                     </div>
                     <p id="kssl-import-status" style="margin: 5px 0 0 0; font-size: 12px;"></p>
                 </div>
+                <?php if ( $kssl_import_blocked ) : ?>
+                    </fieldset>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -1160,100 +1175,120 @@ function kssl_display_debug_info_section() {
             });
         }
 
+        // Counting / deleting run in bounded steps: the server processes a slice of ids and returns
+        // the cursor; we call again until done.
+        var ksslDeleteNonce = '<?php echo esc_js( wp_create_nonce('kssl_delete_nonce') ); ?>';
+        function ksslStepLoop(action, filters, onProgress, onDone, onError, startMaxId) {
+            var total = 0;
+            function step(cursor, maxId) {
+                $.ajax({
+                    url: ajaxurl,
+                    type: 'POST',
+                    data: { action: action, nonce: ksslDeleteNonce, filters: filters, cursor: cursor, max_id: maxId },
+                    success: function(response) {
+                        if (!response.success) {
+                            onError(response.data && response.data.message ? response.data.message : 'エラーが発生しました。');
+                            return;
+                        }
+                        var d = response.data;
+                        total += parseInt(d.matched, 10) || 0;
+                        if (d.done) {
+                            onDone(total, d.max_id);
+                        } else {
+                            onProgress(total, d.max_id > 0 ? Math.floor(d.cursor * 100 / d.max_id) : 0);
+                            step(d.cursor, d.max_id);
+                        }
+                    },
+                    error: function() { onError('サーバーに接続できませんでした。'); }
+                });
+            }
+            step(0, startMaxId || 0);
+        }
+        function ksslDeleteFilters() {
+            return {
+                period_type: $('select[name="delete_period_type"]').val(),
+                older_than_date: $('input[name="delete_older_than_date"]').val(),
+                date_from: $('input[name="delete_date_from"]').val(),
+                date_to: $('input[name="delete_date_to"]').val(),
+                // '1' / '0': jQuery sends a boolean false as the string 'false', which PHP treats as set
+                only_bots: $('input[name="delete_only_bots"]').prop('checked') ? '1' : '0',
+                only_errors: $('input[name="delete_only_errors"]').prop('checked') ? '1' : '0',
+                only_suspicious: $('input[name="delete_only_suspicious"]').prop('checked') ? '1' : '0',
+                specific_ip: $('input[name="delete_specific_ip"]').val()
+            };
+        }
+        function ksslErrorBox(title, message) {
+            return $('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px;"></div>')
+                .append($('<strong></strong>').text(title)).append('<br>').append(document.createTextNode(message));
+        }
+
+        // The delete button deletes exactly what was counted: the conditions and the highest id at
+        // counting time are kept, and changing any condition disables the button until recounted.
+        // A count still running when a condition changes belongs to an old generation: its result is
+        // dropped when it arrives.
+        var ksslCounted = null;
+        var ksslCountGen = 0;
+        $(document).on('change input', '[name^="delete_"]', function() {
+            ksslCountGen++;
+            ksslCounted = null;
+            $('#kssl-delete-logs-btn').prop('disabled', true);
+            $('#delete-count-result').hide();
+        });
+
         // 削除対象件数確認
         $('#kssl-check-delete-count-btn').on('click', function() {
             var $button = $(this);
             var $result = $('#delete-count-result');
             var $deleteBtn = $('#kssl-delete-logs-btn');
-
-            var filters = {
-                period_type: $('select[name="delete_period_type"]').val(),
-                older_than_date: $('input[name="delete_older_than_date"]').val(),
-                date_from: $('input[name="delete_date_from"]').val(),
-                date_to: $('input[name="delete_date_to"]').val(),
-                only_bots: $('input[name="delete_only_bots"]').prop('checked'),
-                only_errors: $('input[name="delete_only_errors"]').prop('checked'),
-                only_suspicious: $('input[name="delete_only_suspicious"]').prop('checked'),
-                specific_ip: $('input[name="delete_specific_ip"]').val()
-            };
-
             $button.prop('disabled', true).text('確認中...');
-
-            $.ajax({
-                url: ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'kssl_count_delete_logs',
-                    nonce: '<?php echo wp_create_nonce('kssl_delete_nonce'); ?>',
-                    filters: filters
-                },
-                success: function(response) {
-                    if (response.success) {
-                        var count = response.data.count;
-                        $result.show().html('<div style="padding: 10px; border: 1px solid #0073aa; background: #e6f3ff; border-radius: 4px;"><strong>削除対象: ' + count.toLocaleString() + ' 件</strong><br>上記のログが削除されます。よろしいですか？</div>');
-                        $deleteBtn.prop('disabled', count === 0);
-                    } else {
-                        $result.show().html('<div style="color: red; padding: 10px; border: 1px solid #d63638; background: #ffebee; border-radius: 4px;">エラー: ' + response.data.message + '</div>');
+            ksslCounted = null;
+            $deleteBtn.prop('disabled', true);
+            var countGen = ++ksslCountGen;
+            var countFilters = ksslDeleteFilters();
+            ksslStepLoop('kssl_count_delete_logs', countFilters,
+                function(count, pct) { $button.text('確認中... ' + pct + '%'); },
+                function(count, maxId) {
+                    if (countGen !== ksslCountGen) {
+                        // A condition changed while counting: this result is for the old conditions.
+                        $button.prop('disabled', false).text('削除対象件数を確認');
+                        return;
                     }
-                },
-                error: function() {
-                    $result.show().html('<div style="color: red; padding: 10px; border: 1px solid #d63638; background: #ffebee; border-radius: 4px;">通信エラーが発生しました。</div>');
-                },
-                complete: function() {
+                    ksslCounted = { filters: countFilters, maxId: maxId };
+                    $result.show().html('<div style="padding: 10px; border: 1px solid #0073aa; background: #e6f3ff; border-radius: 4px;"><strong>削除対象: ' + count.toLocaleString() + ' 件</strong><br>上記のログが削除されます。よろしいですか？</div>');
+                    $deleteBtn.prop('disabled', count === 0);
                     $button.prop('disabled', false).text('削除対象件数を確認');
-                }
-            });
+                },
+                function(message) {
+                    $result.show().empty().append(ksslErrorBox('エラー:', message));
+                    $button.prop('disabled', false).text('削除対象件数を確認');
+                });
         });
 
         // 条件付きログ削除
         $('#kssl-delete-logs-btn').on('click', function() {
+            if (!ksslCounted || JSON.stringify(ksslCounted.filters) !== JSON.stringify(ksslDeleteFilters())) {
+                ksslCounted = null;
+                $(this).prop('disabled', true);
+                alert('先に「削除対象件数を確認」を押してください。');
+                return;
+            }
             if (!confirm('選択した条件に合致するログを削除します。この操作は元に戻せません。続行しますか？')) {
                 return;
             }
-
             var $button = $(this);
             var $result = $('#kssl-delete-result');
-
-            var filters = {
-                period_type: $('select[name="delete_period_type"]').val(),
-                older_than_date: $('input[name="delete_older_than_date"]').val(),
-                date_from: $('input[name="delete_date_from"]').val(),
-                date_to: $('input[name="delete_date_to"]').val(),
-                only_bots: $('input[name="delete_only_bots"]').prop('checked'),
-                only_errors: $('input[name="delete_only_errors"]').prop('checked'),
-                only_suspicious: $('input[name="delete_only_suspicious"]').prop('checked'),
-                specific_ip: $('input[name="delete_specific_ip"]').val()
-            };
-
             $button.prop('disabled', true).text('削除中...');
-
-            $.ajax({
-                url: ajaxurl,
-                type: 'POST',
-                data: {
-                    action: 'kssl_delete_logs',
-                    nonce: '<?php echo wp_create_nonce('kssl_delete_nonce'); ?>',
-                    filters: filters
+            ksslStepLoop('kssl_delete_logs', ksslCounted.filters,
+                function(deleted, pct) { $button.text('削除中... ' + pct + '% (' + deleted.toLocaleString() + ' 件)'); },
+                function(deleted) {
+                    $result.show().html('<div style="color: green; border: 1px solid #0073aa; background: #e6f3ff; padding: 10px; border-radius: 4px;"><strong>✓ 削除完了!</strong><br>' + deleted.toLocaleString() + ' 件のログを削除しました。<br><br>ページを更新します...</div>');
+                    $('#delete-count-result').hide();
+                    setTimeout(function() { location.reload(); }, 1500);
                 },
-                success: function(response) {
-                    if (response.success) {
-                        $result.show().html('<div style="color: green; border: 1px solid #0073aa; background: #e6f3ff; padding: 10px; border-radius: 4px;"><strong>✓ 削除完了!</strong><br>' + response.data.message + '<br><br>ページを更新します...</div>');
-                        $('#delete-count-result').hide();
-                        // データベース状態を最新にするためリロード
-                        setTimeout(function() {
-                            location.reload();
-                        }, 1500);
-                    } else {
-                        $result.show().html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px;"><strong>✗ 削除エラー!</strong><br>' + response.data.message + '</div>');
-                    }
-                },
-                error: function() {
-                    $result.show().html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px;"><strong>✗ 通信エラー!</strong><br>サーバーに接続できませんでした。</div>');
-                },
-                complete: function() {
-                    $button.prop('disabled', true).text('ログを削除');
-                }
-            });
+                function(message) {
+                    $result.show().empty().append(ksslErrorBox('✗ 削除エラー!', message));
+                    $button.prop('disabled', false).text('ログを削除');
+                }, ksslCounted.maxId);
         });
 
         // 全ログ削除
@@ -1261,37 +1296,33 @@ function kssl_display_debug_info_section() {
             if (!confirm('すべてのアクセスログを削除します。この操作は元に戻せません。本当に続行しますか？')) {
                 return;
             }
-
             var $button = $(this);
             var $result = $('#kssl-delete-result');
-
             $button.prop('disabled', true).text('削除中...');
-
+            var done = function() {
+                $result.show().html('<div style="color: green; border: 1px solid #0073aa; background: #e6f3ff; padding: 10px; border-radius: 4px;"><strong>✓ 全削除完了!</strong><br>すべてのログを削除しました。<br><br>ページを更新します...</div>');
+                $('#confirm-delete-all').prop('checked', false);
+                setTimeout(function() { location.reload(); }, 1500);
+            };
+            var fail = function(message) {
+                $result.show().empty().append(ksslErrorBox('✗ 削除エラー!', message));
+                $button.prop('disabled', true).text('すべてのログを削除');
+            };
             $.ajax({
                 url: ajaxurl,
                 type: 'POST',
-                data: {
-                    action: 'kssl_delete_all_logs',
-                    nonce: '<?php echo wp_create_nonce('kssl_delete_nonce'); ?>'
-                },
+                data: { action: 'kssl_delete_all_logs', nonce: ksslDeleteNonce },
                 success: function(response) {
-                    if (response.success) {
-                        $result.show().html('<div style="color: green; border: 1px solid #0073aa; background: #e6f3ff; padding: 10px; border-radius: 4px;"><strong>✓ 全削除完了!</strong><br>' + response.data.message + '<br><br>ページを更新します...</div>');
-                        $('#confirm-delete-all').prop('checked', false);
-                        // データベース状態を最新にするためリロード
-                        setTimeout(function() {
-                            location.reload();
-                        }, 1500);
+                    if (!response.success) {
+                        fail(response.data && response.data.message ? response.data.message : 'エラーが発生しました。');
+                    } else if (response.data.done) {
+                        done();
                     } else {
-                        $result.show().html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px;"><strong>✗ 削除エラー!</strong><br>' + response.data.message + '</div>');
+                        // TRUNCATE was not possible: delete everything in bounded steps
+                        ksslStepLoop('kssl_delete_logs', {}, function(deleted, pct) { $button.text('削除中... ' + pct + '%'); }, done, fail);
                     }
                 },
-                error: function() {
-                    $result.show().html('<div style="color: red; border: 1px solid #d63638; background: #ffebee; padding: 10px; border-radius: 4px;"><strong>✗ 通信エラー!</strong><br>サーバーに接続できませんでした。</div>');
-                },
-                complete: function() {
-                    $button.prop('disabled', true).text('すべてのログを削除');
-                }
+                error: function() { fail('サーバーに接続できませんでした。'); }
             });
         });
 

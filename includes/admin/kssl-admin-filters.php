@@ -86,8 +86,16 @@ function kssl_get_filters_from_request() {
 
     // タイムゾーンを考慮した日付フィルター処理
     $timezone = isset($filters['timezone_filter']) ? $filters['timezone_filter'] : 'UTC';
-    
-    if (!empty($filters['date_from_filter'])) {
+
+    // 「過去24時間」は日付単位ではなく、今から 24 時間前から今までの時刻で絞り込む
+    // (日付単位にすると昨日 0:00 から今日 23:59 まで、最大 48 時間になる)
+    if (($filters['period_preset_filter'] ?? '') === '24hours') {
+        $now = time();
+        $where_clauses[] = "access_time >= %s";
+        $params[] = gmdate('Y-m-d H:i:s', $now - DAY_IN_SECONDS);
+        $where_clauses[] = "access_time <= %s";
+        $params[] = gmdate('Y-m-d H:i:s', $now);
+    } elseif (!empty($filters['date_from_filter'])) {
         $date_from = sanitize_text_field($filters['date_from_filter']);
         if (preg_match("/^\d{4}-\d{2}-\d{2}$/", $date_from)) {
             // タイムゾーンをUTCに変換
@@ -96,7 +104,7 @@ function kssl_get_filters_from_request() {
             $params[] = $utc_date_from;
         }
     }
-    if (!empty($filters['date_to_filter'])) {
+    if (($filters['period_preset_filter'] ?? '') !== '24hours' && !empty($filters['date_to_filter'])) {
         $date_to = sanitize_text_field($filters['date_to_filter']);
         if (preg_match("/^\d{4}-\d{2}-\d{2}$/", $date_to)) {
             // タイムゾーンをUTCに変換
@@ -107,25 +115,19 @@ function kssl_get_filters_from_request() {
     }
 
     // 疑わしいアクセスを除外（デフォルトで有効）
+    // The stored is_suspicious flag is used when it is current; otherwise the same LIKE expression
+    // as before (kssl_exclude_suspicious_where builds both from one definition).
     $exclude_suspicious = !isset($_REQUEST['include_suspicious']) || $_REQUEST['include_suspicious'] !== '1';
+    if (!$exclude_suspicious) {
+        // kept in the filters so that sort, pagination and IP links carry it
+        $filters['include_suspicious'] = '1';
+    }
     if ($exclude_suspicious) {
-        $suspicious_keywords_raw = get_option(KSSL_SUSPICIOUS_KEYWORDS_OPTION_KEY, KSSL_DEFAULT_SUSPICIOUS_KEYWORDS);
-        $suspicious_keywords = array_filter(array_map('trim', explode("\n", $suspicious_keywords_raw)));
-
-        if (!empty($suspicious_keywords)) {
-            $suspicious_conditions = [];
-            foreach ($suspicious_keywords as $keyword) {
-                // User-AgentとRequest URIの両方をチェック
-                $suspicious_conditions[] = "user_agent LIKE %s";
-                $params[] = '%' . $wpdb->esc_like($keyword) . '%';
-                $suspicious_conditions[] = "request_uri LIKE %s";
-                $params[] = '%' . $wpdb->esc_like($keyword) . '%';
-            }
-
-            if (!empty($suspicious_conditions)) {
-                // すべての疑わしいパターンを除外（NOT (A OR B OR C...)）
-                $where_clauses[] = "NOT (" . implode(" OR ", $suspicious_conditions) . ")";
-            }
+        $suspicious_params = [];
+        $suspicious_where = kssl_exclude_suspicious_where($suspicious_params);
+        if ($suspicious_where !== '1=1') {
+            $where_clauses[] = $suspicious_where;
+            $params = array_merge($params, $suspicious_params);
         }
     }
 
@@ -215,6 +217,10 @@ function kssl_display_filters_form($current_filters, $current_orderby, $current_
                 <option value="wordpress" <?php selected($current_filters['source_filter'] ?? '', 'wordpress'); ?>><?php esc_html_e('WordPress', 'kashiwazaki-seo-super-access-log');?></option>
                 <option value="static" <?php selected($current_filters['source_filter'] ?? '', 'static'); ?>><?php esc_html_e('静的ページ', 'kashiwazaki-seo-super-access-log');?></option>
             </select>
+            <label title="<?php esc_attr_e('疑わしいキーワードを含むアクセスも一覧・合計・チャートに含めます (既定では除外)', 'kashiwazaki-seo-super-access-log'); ?>">
+                <input type="checkbox" name="include_suspicious" value="1" <?php checked( ! empty( $current_filters['include_suspicious'] ) ); ?>>
+                <?php esc_html_e('疑わしいアクセスを含める', 'kashiwazaki-seo-super-access-log'); ?>
+            </label>
              <select name="timezone_filter" title="<?php esc_attr_e('表示タイムゾーン', 'kashiwazaki-seo-super-access-log'); ?>">
                 <?php foreach ( $available_timezones as $tz_value => $tz_label ) : ?>
                     <option value="<?php echo esc_attr( $tz_value ); ?>" <?php selected( $current_timezone, $tz_value ); ?>>
@@ -224,7 +230,7 @@ function kssl_display_filters_form($current_filters, $current_orderby, $current_
             </select>
             <input type="submit" class="button" value="<?php esc_attr_e('フィルター', 'kashiwazaki-seo-super-access-log'); ?>">
              <?php
-             $is_any_filter_active = false;
+             $is_any_filter_active = ! empty( $current_filters['include_suspicious'] );
              foreach ($filter_fields_map as $db_field => $request_key_check) {
                  if ($request_key_check === 'timezone_filter' && (!isset($current_filters[$request_key_check]) || $current_filters[$request_key_check] === 'UTC')) {
                      continue; 

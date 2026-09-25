@@ -73,15 +73,283 @@ function kssl_apply_performance_settings() {
  *
  * @return string IPアドレス
  */
+/**
+ * Visitor IP. Forwarding headers are client-controlled, so they are used only when the direct
+ * peer (REMOTE_ADDR) is a proxy that sets them:
+ * - a Cloudflare address: CF-Connecting-IP (Cloudflare documents this header and advises
+ *   accepting it only from its published IP ranges); when a host drops that header, the
+ *   X-Forwarded-For list, to which Cloudflare appends the address that connected to it;
+ * - a private / loopback address or one listed by the 'kssl_trusted_proxies' filter: the
+ *   right-most X-Forwarded-For entry that is not itself such a proxy.
+ * Otherwise REMOTE_ADDR.
+ */
 function kssl_get_ip_address() {
-    $ip_address_val = '';
-    if ( ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-        $ips = explode( ',', sanitize_text_field( wp_unslash($_SERVER['HTTP_X_FORWARDED_FOR']) ) );
-        $ip_address_val = filter_var( trim( $ips[0] ), FILTER_VALIDATE_IP );
+    $remote = isset( $_SERVER['REMOTE_ADDR'] ) ? filter_var( trim( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ), FILTER_VALIDATE_IP ) : false;
+    if ( ! $remote ) {
+        return '';
     }
-    if ( ! $ip_address_val && ! empty( $_SERVER['HTTP_CLIENT_IP'] ) ) $ip_address_val = filter_var( sanitize_text_field( wp_unslash($_SERVER['HTTP_CLIENT_IP']) ), FILTER_VALIDATE_IP );
-    if ( ! $ip_address_val && ! empty( $_SERVER['REMOTE_ADDR'] ) ) $ip_address_val = filter_var( sanitize_text_field( wp_unslash($_SERVER['REMOTE_ADDR']) ), FILTER_VALIDATE_IP );
-    return $ip_address_val ? $ip_address_val : '';
+    $cloudflare = kssl_cloudflare_ip_ranges();
+    $from_cloudflare = kssl_ip_in_ranges( $remote, $cloudflare );
+    if ( $from_cloudflare && ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+        $cf = filter_var( trim( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ), FILTER_VALIDATE_IP );
+        if ( $cf ) {
+            return $cf;
+        }
+    }
+    if ( ( $from_cloudflare || kssl_is_trusted_proxy( $remote ) ) && ! empty( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+        $hops = array_reverse( array_map( 'trim', explode( ',', wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) ) );
+        $client = '';
+        foreach ( $hops as $hop ) {
+            $ip = filter_var( $hop, FILTER_VALIDATE_IP );
+            if ( ! $ip ) {
+                break; // a malformed entry: nothing to its left can be trusted
+            }
+            $client = $ip;
+            if ( ! kssl_is_trusted_proxy( $ip ) && ! kssl_ip_in_ranges( $ip, $cloudflare ) ) {
+                return $ip;
+            }
+        }
+        if ( $client !== '' ) {
+            return $client; // every hop is a trusted proxy (e.g. a visitor on the local network)
+        }
+    }
+    return $remote;
+}
+
+/**
+ * Directory for files that hold log data (CSV exports, uploaded CSV being imported).
+ * It lives under uploads in a directory whose name contains a 128-bit random key (web servers
+ * that ignore .htaccess, such as nginx, cannot be asked for a file they cannot name), and it is
+ * denied with an .htaccess that works on Apache 2.4 ("Require all denied") and on 2.2
+ * ("Deny from all"; httpd.apache.org/docs/2.4/upgrading.html). Files are only served through
+ * the nonce- and capability-checked admin handlers.
+ *
+ * @param string $sub 'exports' or 'temp'.
+ * @return string Absolute path without trailing slash, or '' when uploads are unavailable.
+ */
+function kssl_private_dir( $sub ) {
+    $upload = wp_upload_dir();
+    if ( ! empty( $upload['error'] ) || empty( $upload['basedir'] ) ) {
+        return '';
+    }
+    $key = get_option( 'kssl_private_dir_key' );
+    if ( ! is_string( $key ) || ! preg_match( '/^[a-f0-9]{32}$/', $key ) ) {
+        $key = bin2hex( random_bytes( 16 ) );
+        update_option( 'kssl_private_dir_key', $key, false );
+    }
+    $base = $upload['basedir'] . '/kssl-private-' . $key;
+    $dir = $base . '/' . preg_replace( '/[^a-z]/', '', $sub );
+    if ( ! is_dir( $dir ) ) {
+        wp_mkdir_p( $dir );
+    }
+    kssl_protect_dir( $base );
+    kssl_protect_dir( $dir );
+    return $dir;
+}
+
+function kssl_protect_dir( $dir ) {
+    if ( ! is_dir( $dir ) ) {
+        return;
+    }
+    $htaccess = "# Apache 2.4\n<IfModule mod_authz_core.c>\nRequire all denied\n</IfModule>\n# Apache 2.2\n<IfModule !mod_authz_core.c>\nOrder deny,allow\nDeny from all\n</IfModule>\n";
+    if ( ! file_exists( $dir . '/.htaccess' ) || file_get_contents( $dir . '/.htaccess' ) !== $htaccess ) {
+        @file_put_contents( $dir . '/.htaccess', $htaccess );
+    }
+    if ( ! file_exists( $dir . '/index.php' ) ) {
+        @file_put_contents( $dir . '/index.php', "<?php\n// Silence is golden.\n" );
+    }
+}
+
+/**
+ * Moves files from the directories used before (uploads/kssl-exports, uploads/kssl-temp, which
+ * could be served by nginx) into the private directory, and removes the old directories.
+ * An old directory is removed (with its deny rules) only when nothing else is left in it; if a
+ * file could not be moved, the directory keeps deny rules that work on Apache 2.4 and 2.2.
+ *
+ * @return bool True when no old directory is left.
+ */
+function kssl_move_legacy_private_files() {
+    $upload = wp_upload_dir( null, false );
+    if ( ! empty( $upload['error'] ) || empty( $upload['basedir'] ) ) {
+        return false;
+    }
+    $all_gone = true;
+    $dirs_left = [];
+    foreach ( [ 'kssl-exports' => 'exports', 'kssl-temp' => 'temp' ] as $old => $sub ) {
+        $old_dir = $upload['basedir'] . '/' . $old;
+        if ( ! is_dir( $old_dir ) ) {
+            continue;
+        }
+        $new_dir = kssl_private_dir( $sub );
+        foreach ( (array) glob( $old_dir . '/*.csv' ) as $file ) {
+            if ( ! is_file( $file ) ) {
+                continue;
+            }
+            $dest = $new_dir !== '' ? $new_dir . '/' . basename( $file ) : '';
+            // rename, or copy then remove the original (rename can fail across file systems)
+            if ( $dest !== '' && ! @rename( $file, $dest ) && @copy( $file, $dest ) ) {
+                @unlink( $file );
+            }
+        }
+        $entries = scandir( $old_dir );
+        $left = $entries === false ? [ '?' ] : array_diff( $entries, [ '.', '..', '.htaccess', 'index.php' ] );
+        if ( empty( $left ) ) {
+            @unlink( $old_dir . '/.htaccess' );
+            @unlink( $old_dir . '/index.php' );
+            @rmdir( $old_dir );
+        } else {
+            kssl_protect_dir( $old_dir );
+        }
+        if ( is_dir( $old_dir ) ) {
+            // Still there: files could not be moved or removed, or could not even be listed
+            $all_gone = false;
+            $dirs_left[] = $old;
+        }
+    }
+    // Read by kssl_legacy_private_notice: old public directories that are still there
+    if ( $dirs_left ) {
+        update_option( 'kssl_legacy_private_left', $dirs_left, false );
+    } else {
+        delete_option( 'kssl_legacy_private_left' );
+    }
+    return $all_gone;
+}
+
+/**
+ * Runs the move on the first request after an update (not only when the export screen is
+ * opened), until no old directory is left. The flag is autoloaded, so later requests only read it.
+ */
+function kssl_maybe_move_legacy_private_files() {
+    if ( get_option( 'kssl_legacy_private_moved' ) === '1' || get_transient( 'kssl_legacy_move_wait' ) ) {
+        return;
+    }
+    if ( kssl_move_legacy_private_files() ) {
+        update_option( 'kssl_legacy_private_moved', '1', true );
+    } else {
+        // Something could not be moved (file owner / permissions): retry every 10 minutes, not on every request
+        set_transient( 'kssl_legacy_move_wait', 1, 10 * MINUTE_IN_SECONDS );
+    }
+}
+
+/**
+ * Tells administrators when an old public directory (which held exported / uploaded CSV files:
+ * the whole log, IP addresses included) could not be emptied and removed. Directories removed by
+ * hand since the last attempt are dropped at once.
+ */
+function kssl_legacy_private_notice() {
+    $left = get_option( 'kssl_legacy_private_left', [] );
+    if ( ! is_array( $left ) || ! $left || ! current_user_can( 'manage_options' ) ) {
+        return;
+    }
+    $upload = wp_upload_dir( null, false );
+    if ( ! empty( $upload['error'] ) || empty( $upload['basedir'] ) ) {
+        return;
+    }
+    $still = [];
+    foreach ( $left as $old ) {
+        if ( in_array( $old, [ 'kssl-exports', 'kssl-temp' ], true ) && is_dir( $upload['basedir'] . '/' . $old ) ) {
+            $still[] = 'wp-content/uploads/' . $old;
+        }
+    }
+    if ( ! $still ) {
+        delete_option( 'kssl_legacy_private_left' );
+        return;
+    }
+    $message = sprintf(
+        /* translators: %s: directory paths */
+        __( 'Kashiwazaki SEO Super Access Log: 以前のバージョンがエクスポート・インポートの CSV (アクセスログ全件、IP アドレスを含む) を置いていた公開ディレクトリ %s を、空にして削除できませんでした (ファイルの所有者・権限)。nginx などでは URL を知られると中の CSV を取得されます。所有者・権限を直すか、このディレクトリを削除してください。', 'kashiwazaki-seo-super-access-log' ),
+        implode( ', ', $still )
+    );
+    echo '<div class="notice notice-error"><p>' . esc_html( $message ) . '</p></div>';
+}
+
+/**
+ * True for a file in the private temp directory (an uploaded CSV being imported).
+ */
+function kssl_is_import_temp_file( $path ) {
+    $dir = kssl_private_dir( 'temp' );
+    $real = realpath( (string) $path );
+    $real_dir = $dir !== '' ? realpath( $dir ) : false;
+    return $real !== false && $real_dir !== false && dirname( $real ) === $real_dir;
+}
+
+/**
+ * Removes uploaded CSV copies left in the private temp directory after their import job expired
+ * (a job lives at most one day, so a copy older than two days has no job).
+ */
+function kssl_cleanup_import_temp_files() {
+    $dir = kssl_private_dir( 'temp' );
+    if ( $dir === '' ) {
+        return;
+    }
+    foreach ( (array) glob( $dir . '/*.csv' ) as $file ) {
+        if ( is_file( $file ) && filemtime( $file ) < time() - 2 * DAY_IN_SECONDS ) {
+            @unlink( $file );
+        }
+    }
+}
+
+/**
+ * A proxy whose X-Forwarded-For is believed: private / loopback / reserved addresses (a proxy on
+ * the same host or network) and addresses or CIDR ranges from the 'kssl_trusted_proxies' filter.
+ */
+function kssl_is_trusted_proxy( $ip ) {
+    if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false ) {
+        return true;
+    }
+    return kssl_ip_in_ranges( $ip, (array) apply_filters( 'kssl_trusted_proxies', [] ) );
+}
+
+/**
+ * Cloudflare's published ranges (https://www.cloudflare.com/ips-v4 and /ips-v6, 2026-09-25).
+ * Sites can update the list with the 'kssl_cloudflare_ip_ranges' filter.
+ */
+function kssl_cloudflare_ip_ranges() {
+    return (array) apply_filters( 'kssl_cloudflare_ip_ranges', [
+        '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18',
+        '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17',
+        '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+        '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32',
+        '2a06:98c0::/29', '2c0f:f248::/32',
+    ] );
+}
+
+/**
+ * True when $ip equals one of $ranges or falls in one of its CIDR blocks (IPv4 and IPv6).
+ */
+function kssl_ip_in_ranges( $ip, array $ranges ) {
+    $bin = @inet_pton( $ip );
+    if ( $bin === false ) {
+        return false;
+    }
+    foreach ( $ranges as $range ) {
+        $range = trim( (string) $range );
+        if ( $range === '' ) {
+            continue;
+        }
+        $parts = explode( '/', $range, 2 );
+        $net = @inet_pton( $parts[0] );
+        if ( $net === false || strlen( $net ) !== strlen( $bin ) ) {
+            continue;
+        }
+        $bits = isset( $parts[1] ) ? (int) $parts[1] : strlen( $bin ) * 8;
+        if ( $bits < 0 || $bits > strlen( $bin ) * 8 ) {
+            continue;
+        }
+        $bytes = intdiv( $bits, 8 );
+        if ( substr( $bin, 0, $bytes ) !== substr( $net, 0, $bytes ) ) {
+            continue;
+        }
+        $rest = $bits % 8;
+        if ( $rest === 0 ) {
+            return true;
+        }
+        $mask = ( 0xFF << ( 8 - $rest ) ) & 0xFF;
+        if ( ( ord( $bin[ $bytes ] ) & $mask ) === ( ord( $net[ $bytes ] ) & $mask ) ) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -110,9 +378,20 @@ function kssl_get_server_ip() {
     if ($host) {
         // ポート番号があれば除去
         $host = preg_replace('/:\d+$/', '', $host);
-        $ip = gethostbyname($host);
-        if ($ip !== $host && filter_var($ip, FILTER_VALIDATE_IP)) {
-            return $ip;
+        // DNS lookup is cached (per request and for a day): it used to run on every logged request.
+        static $resolved = [];
+        if (!array_key_exists($host, $resolved)) {
+            $cache_key = 'kssl_srvip_' . md5($host);
+            $cached = get_transient($cache_key);
+            if ($cached === false) {
+                $ip = gethostbyname($host);
+                $cached = ($ip !== $host && filter_var($ip, FILTER_VALIDATE_IP)) ? $ip : '';
+                set_transient($cache_key, $cached, DAY_IN_SECONDS);
+            }
+            $resolved[$host] = $cached;
+        }
+        if ($resolved[$host] !== '') {
+            return $resolved[$host];
         }
     }
     
@@ -209,6 +488,25 @@ function kssl_apply_excluded_uri_patterns($where_clauses, $params) {
     }
     
     return [$where_clauses, $params];
+}
+
+/**
+ * True when the request URI contains one of the excluded URI patterns. Same meaning as the
+ * "request_uri NOT LIKE '%pattern%'" condition used for display (the column collation is
+ * case-insensitive), so an excluded request is not recorded at all.
+ *
+ * @param string $uri
+ * @return bool
+ */
+function kssl_uri_is_excluded( $uri ) {
+    $patterns = array_filter( array_map( 'trim', explode( "\n", (string) kssl_get_option( KSSL_EXCLUDED_URI_PATTERNS_OPTION_KEY, '' ) ) ) );
+    foreach ( $patterns as $pattern ) {
+        $pos = function_exists( 'mb_stripos' ) ? mb_stripos( (string) $uri, $pattern ) : stripos( (string) $uri, $pattern );
+        if ( $pos !== false ) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /**
@@ -417,7 +715,7 @@ function kssl_get_country_code_from_ip_func($ip_address) {
     }
 
     $api_url = "http://ip-api.com/json/" . urlencode($ip_address) . "?fields=status,message,countryCode";
-    $response = wp_remote_get($api_url, ['timeout' => 2]);
+    $response = wp_remote_get($api_url, ['timeout' => 1]);
 
     $country_code_to_cache = 'KSSL_NULL';
 
@@ -436,7 +734,7 @@ function kssl_get_country_code_from_ip_func($ip_address) {
 
     if (isset($data['status']) && $data['status'] === 'success' && isset($data['countryCode']) && !empty($data['countryCode'])) {
         $country_code_val = sanitize_text_field(strtoupper($data['countryCode']));
-        set_transient($transient_key, $country_code_val, 12 * HOUR_IN_SECONDS);
+        set_transient($transient_key, $country_code_val, 7 * DAY_IN_SECONDS);
         return $country_code_val;
     } elseif (isset($data['message'])) {
         if (strpos(strtolower($data['message']), 'private range') !== false || strpos(strtolower($data['message']), 'reserved range') !== false) {
@@ -493,6 +791,25 @@ function kssl_format_time_by_timezone($datetime_string_utc, $target_timezone_ide
  * @param string $source_timezone_identifier ソースタイムゾーン
  * @return string UTC日時文字列
  */
+/**
+ * A date entered on the log management screen (Y-m-d, in the site's timezone: wp_timezone())
+ * at the given local time, as the UTC datetime that access_time is stored in. Null for a value
+ * that is not a valid Y-m-d date.
+ */
+function kssl_site_date_to_utc( $date, $time = '00:00:00' ) {
+    $date = trim( (string) $date );
+    if ( ! preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', $date, $m ) || ! checkdate( (int) $m[2], (int) $m[3], (int) $m[1] ) ) {
+        return null;
+    }
+    try {
+        $dt = new DateTime( $date . ' ' . $time, wp_timezone() );
+        $dt->setTimezone( new DateTimeZone( 'UTC' ) );
+        return $dt->format( 'Y-m-d H:i:s' );
+    } catch ( Exception $e ) {
+        return null;
+    }
+}
+
 function kssl_convert_local_date_to_utc($local_datetime_string, $source_timezone_identifier) {
     if (empty($local_datetime_string) || $source_timezone_identifier === 'UTC') {
         return $local_datetime_string;
@@ -684,7 +1001,7 @@ function kssl_debug_plugin_status() {
     
     // 2. ログの件数確認
     if ($table_exists) {
-        $log_count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
+        $log_count = kssl_count_all_logs();
         $debug_info['log_count'] = $log_count;
         
         // 最新のログを取得

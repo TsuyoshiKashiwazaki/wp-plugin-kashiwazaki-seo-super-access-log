@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>グラフの見方 - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li class="active"><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>グラフの見方</h1>
+        <p class="lead">「アクセストレンドチャート」で日ごとの件数の推移を、「アクセス統計チャート」で 5 つの観点の割合を確かめられます。</p>
+
+        <p>2 つのグラフは、見出しを押すと開いたり閉じたりできます。最初は両方とも開いています。どちらも、上の絞り込み条件に合うログで作られます。</p>
+
+        <h2 id="trend">アクセストレンドチャート</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/14-main-trend-chart.png" alt="アクセストレンドチャート" class="lightbox-trigger">
+            <figcaption>日ごとのアクセス数の推移（過去 12 ヶ月）</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:25%;">表示</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>総アクセス数</td><td>期間内のアクセスの合計です。</td></tr>
+                <tr><td>トレンド</td><td>期間の前半と後半で、1 日あたりの平均アクセス数を比べた結果です。後半が 10% より多く増えていれば「📈 Increasing」（増加）、10% より多く減っていれば「📉 Decreasing」（減少）、その間なら「➡️ Stable」（安定）と表示し、変化の割合を「(+5.9%)」のように添えます。データが 4 日分より少ないときは、いつも「Stable」です。</td></tr>
+                <tr><td>折れ線グラフ</td><td>横軸（Date）が日付、縦軸（Access Count）がその日のアクセス数です。線の上にマウスを乗せると、その日の件数を表示します。</td></tr>
+                <tr><td>日付の区切り</td><td>絞り込みの「表示タイムゾーン」の 0 時で 1 日を区切ります。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-note">
+            <div class="callout-title">長い期間を表示したとき</div>
+            <p>91 日以上を表示すると、グラフが細かくなりすぎないように、約 90 点に間引いて描きます。間引くときは数日を合計するのではなく、一定の間隔で日を選んで描くので、細かい山や谷が省かれることがあります。日ごとの正確な数を見たいときは、期間を 90 日以内にしてください。</p>
+        </div>
+        <p>期間内にアクセスがないときは「No trend data available for the selected period.」と表示されます。</p>
+
+        <h2 id="stats">アクセス統計チャート</h2>
+        <p>5 つのボタンで、何の割合を見るかを切り替えます。押したボタンが青くなります。左がドーナツグラフ、右が件数の多い順の一覧です。</p>
+        <table>
+            <thead><tr><th style="width:25%;">表示</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>現在のログ数</td><td>絞り込みに関係なく、保存しているログ全体の件数です。</td></tr>
+                <tr><td>ドーナツグラフ</td><td>上位 10 項目と、それ以外をまとめた「その他」の割合です。凡例の名前は 30 文字を超えると省略されます。</td></tr>
+                <tr><td>右の一覧</td><td>上位 10 項目の「件数 (割合%)」と名前です。値がない項目は「(不明)」と表示されます。</td></tr>
+            </tbody>
+        </table>
+
+        <h3>ユーザーエージェント</h3>
+        <figure class="screenshot">
+            <img src="images/screenshots/15-main-stats-ua.png" alt="ユーザーエージェントの割合" class="lightbox-trigger">
+            <figcaption>どのブラウザやボットからのアクセスが多いか</figcaption>
+        </figure>
+        <p>ブラウザやボットの名前ごとの割合です。ボットの名前（Googlebot、bingbot、AhrefsBot など）が上位にあれば、そのボットが多く来ています。記録から外したいボットや、ブロックしたいボットを見つける手がかりになります。</p>
+
+        <h3>国・地域</h3>
+        <figure class="screenshot">
+            <img src="images/screenshots/16-main-stats-country.png" alt="国・地域の割合" class="lightbox-trigger">
+            <figcaption>国コードごとの割合</figcaption>
+        </figure>
+        <p>国コード（JP、US など）ごとの割合です。国はブラウザの言語設定から推定するので、「住んでいる国」ではなく「使っている言語」に近い数字になります（決まり方は「<a href="recording.html#country">記録のルール</a>」）。「IPアドレスから国コードを推定」がオフのときは、グラフの下に「📌 お知らせ: 国・地域データを取得するには、設定で「国コード取得を有効化」にチェックを入れてください。」と表示されます。設定画面での実際の項目名は「IPアドレスから国コードを推定」です。</p>
+
+        <h3>訪問タイプ</h3>
+        <figure class="screenshot">
+            <img src="images/screenshots/16-main-stats-visit-type.png" alt="訪問タイプの割合" class="lightbox-trigger">
+            <figcaption>新規・リピーター・ページ遷移の割合</figcaption>
+        </figure>
+        <p>新規（new）・リピーター（returning）・ページ遷移（transition）・不明（unknown）の割合です。ページ遷移が多いほど、サイトの中で複数のページを見てもらえています。</p>
+
+        <h3>ステータスコード</h3>
+        <figure class="screenshot">
+            <img src="images/screenshots/16-main-stats-status.png" alt="ステータスコードの割合" class="lightbox-trigger">
+            <figcaption>応答の状態を表す番号の割合</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:20%;">番号</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>200</td><td>正常に表示できた</td></tr>
+                <tr><td>301 / 302</td><td>別の URL へ転送した</td></tr>
+                <tr><td>403</td><td>アクセスを拒否した</td></tr>
+                <tr><td>404</td><td>ページが見つからなかった（リンク切れ・存在しない URL・攻撃の試みなど）</td></tr>
+                <tr><td>500 番台</td><td>サーバー側でエラーが起きた</td></tr>
+            </tbody>
+        </table>
+
+        <h3>リファラードメイン</h3>
+        <figure class="screenshot">
+            <img src="images/screenshots/16-main-stats-referer.png" alt="リファラードメインの割合" class="lightbox-trigger">
+            <figcaption>どのサイトから来た訪問が多いか</figcaption>
+        </figure>
+        <p>参照元（そのページに来る前のサイト）のドメインごとの割合です。自分のサイトの中からの移動と、参照元がないアクセスは数えません。検索エンジン・SNS・ほかのサイトのどこから人が来ているかが分かります。</p>
+
+        <h2>グラフが表示されないとき</h2>
+        <table>
+            <thead><tr><th style="width:40%;">表示</th><th>意味と対処</th></tr></thead>
+            <tbody>
+                <tr><td>Chart Disabled ／ パフォーマンスのためチャートは無効になっています（現在: N ログ、上限: M）。設定で調整できます。</td><td>ログから直接数えるとき（文字の条件で絞り込んだときなど）に、件数が設定の「チャート表示制限」を超えると、表示を速く保つためにグラフを作りません。期間を短くするか、設定で上限を上げてください。→ <a href="settings-basic.html#chart-limit">チャート表示制限</a></td></tr>
+                <tr><td>📊 現在のフィルター条件ではデータがありません。</td><td>条件に合うログが 0 件です。条件をゆるめてください。</td></tr>
+                <tr><td>❌ Chart.jsのロードに失敗しました。ページをリロードしてください。</td><td>グラフの部品をインターネットから読み込めませんでした。通信の状態を確かめて、ページを読み直してください。</td></tr>
+                <tr><td>チャートを読み込んでいます...</td><td>読み込み中です。しばらく待つと表示されます。</td></tr>
+            </tbody>
+        </table>
+        <p>グラフの下の説明文「このチャートは選択した期間の日別アクセス数を表示します。トレンドは期間の前半と後半を比較して算出されます。」「チャートは上位 10 項目を表示します。「その他」はそれ以外の全項目の合計を表します。」は、上の説明と同じ内容です。</p>
+
+        <nav class="page-nav">
+            <a href="filters.html" class="prev">&laquo; 絞り込み</a>
+            <a href="log-table.html" class="next">ログ一覧とブロック &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

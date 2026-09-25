@@ -74,7 +74,7 @@ function kssl_display_log_table($log_entries, $displayed_columns, $current_order
                                             $ip_filter_url_args['timezone_filter'] = $current_timezone;
                                         }
                                         $ip_filter_url = add_query_arg($ip_filter_url_args, admin_url('admin.php?page=kssl_access_log_page'));
-                                        echo '<a href="' . esc_url($ip_filter_url) . '" title="' . sprintf(esc_attr__('Filter by IP: %s', 'kashiwazaki-seo-super-access-log'), $value) . '">' . esc_html($value) . '</a>';
+                                        echo '<a href="' . esc_url($ip_filter_url) . '" title="' . esc_attr(sprintf(__('Filter by IP: %s', 'kashiwazaki-seo-super-access-log'), $value)) . '">' . esc_html($value) . '</a>';
                                     } else {
                                         echo '–';
                                     }

@@ -7,152 +7,160 @@
     <link rel="stylesheet" href="css/style.css?v=1">
 </head>
 <body>
-<button class="hamburger-btn" aria-label="メニュー">&#9776;</button>
-
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <h2 style="color:#fff;">Super Access Log</h2>
-        <span class="version">v1.0.0</span>
-        <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
-    </div>
-    <ul>
-        <li class="active"><a href="index.html">概要</a></li>
-        <li><a href="setup.html">インストール・初期設定</a></li>
-        <li><a href="log-management.html">ログ管理</a></li>
-        <li><a href="troubleshooting.html">トラブルシューティング</a></li>
-    </ul>
-</nav>
-
-<main class="content">
-    <h1>Kashiwazaki SEO Super Access Log マニュアル</h1>
-    <img src="images/main-visual.png" alt="Kashiwazaki SEO Super Access Log メインビジュアル" style="width:100%;border-radius:6px;margin-bottom:16px;">
-    <p class="lead">Kashiwazaki SEO Super Access Log は、WordPressサイトの訪問者トラッキングとアクセス解析を行うプラグインです。Cookie IDベースの訪問者識別、ボット検出、Chart.jsによるトレンドチャート、CSV出力・インポート機能を提供します。</p>
-
-    <p>アクセスログの分析は、サイトのパフォーマンス最適化とSEO戦略の策定に不可欠です。本プラグインはCookieベースの訪問者トラッキングとボット検出を備え、Chart.jsによるトレンドチャートとCSVエクスポートを提供します。</p>
-
-    <h2>主な機能</h2>
-
-    <div class="feature-cards">
-        <div class="feature-card">
-            <span class="icon">&#128202;</span>
-            <h4>アクセス解析</h4>
-            <p>Cookie IDベースの訪問者トラッキングとChart.jsによるトレンドチャート</p>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
         </div>
-        <div class="feature-card">
-            <span class="icon">&#128451;</span>
-            <h4>ログ管理</h4>
-            <p>CSV出力・インポート・データ保持期間設定・自動クリーンアップ</p>
-        </div>
-        <div class="feature-card">
-            <span class="icon">&#129302;</span>
-            <h4>ボット検出</h4>
-            <p>User-Agentパターンでボットを自動識別しフィルタリング</p>
-        </div>
-    </div>
-
-    <h2>プラグインの特長</h2>
-
-    <ul>
-        <li>Cookie IDベースの訪問者識別で、同一ユーザーの再訪問を正確にトラッキング</li>
-        <li>User-Agentパターンマッチングによるボットの自動識別とフィルタリング</li>
-        <li>Chart.jsを使用したアクセストレンドの可視化</li>
-        <li>CSVエクスポート・インポートによるデータの外部活用</li>
-        <li>データ保持期間の設定と自動クリーンアップによる効率的なストレージ管理</li>
-        <li>20個のAJAXハンドラーによる高速な管理画面操作</li>
-        <li>月次Cronによるログデータの自動最適化</li>
-        <li>不審なアクセスパターンの検出とブロック機能</li>
-    </ul>
-
-    <figure class="infographic">
-        <img src="images/infographics/overview-flow.png" alt="プラグイン概要フロー図">
-        <figcaption>Kashiwazaki SEO Super Access Log の全体フロー</figcaption>
-    </figure>
-
-    <h2>SEO・GEO（生成AI最適化）への効果</h2>
-
-    <h3>クロールパターンの分析</h3>
-    <p>アクセスログの解析により、検索エンジンのクロールパターンやボットの行動を把握できます。どのページがクロールされているか、クロール頻度はどの程度かを可視化し、クロールバジェットの最適化に役立てることができます。</p>
-
-    <h3>コンテンツ最適化の判断材料</h3>
-    <p>どのページにトラフィックが集中しているかを把握することで、コンテンツの最適化戦略を立てるための判断材料が得られます。アクセスの多いページの品質向上やアクセスの少ないページの改善に活用できます。</p>
-
-    <h3>正確なアクセス分析</h3>
-    <p>ボット検出機能により、自動アクセスと実ユーザーのアクセスを区別できます。ボットからのアクセスを除外した正確なトラフィックデータを取得でき、SEO施策の効果測定の精度が向上します。</p>
-
-    <h3>生成AI（GEO）への対応</h3>
-    <p>AIクローラーのアクセスパターンをモニタリングすることで、AI検索エンジンがどのコンテンツにアクセスしているかを把握できます。この情報をもとに、AIによるコンテンツ発見を促進するための最適化が可能になります。</p>
-
-    <h2>目次（マニュアル構成）</h2>
-
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">ページ</th>
-                <th>内容</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><a href="index.html">概要</a></td>
-                <td>プラグインの機能概要、SEO/GEO効果、動作要件</td>
-            </tr>
-            <tr>
-                <td><a href="setup.html">インストール・初期設定</a></td>
-                <td>インストール手順、基本設定、ボット検出パターン設定</td>
-            </tr>
-            <tr>
-                <td><a href="log-management.html">ログ管理</a></td>
-                <td>アクセスログの閲覧、フィルタリング、チャート表示、CSV操作</td>
-            </tr>
-            <tr>
-                <td><a href="troubleshooting.html">トラブルシューティング</a></td>
-                <td>よくある問題と対処法、動作要件、技術仕様、アーキテクチャ</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h2>動作要件</h2>
-
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">項目</th>
-                <th>要件</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>WordPress</td>
-                <td>5.0 以上</td>
-            </tr>
-            <tr>
-                <td>PHP</td>
-                <td>7.4 以上</td>
-            </tr>
-            <tr>
-                <td>対応ブラウザ</td>
-                <td>Chrome、Firefox、Safari、Edge（最新版）</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="callout callout-tip">
-        <div class="callout-title">ヒント</div>
-        <p>インストール後すぐに使い始めたい場合は、<a href="setup.html">インストール・初期設定</a>ページに進んでください。</p>
-    </div>
-
-    <nav class="page-nav">
-        <span></span>
-        <a href="setup.html" class="next">インストール・初期設定 &raquo;</a>
+        <ul>
+            <li class="active"><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
     </nav>
 
-    <footer class="manual-footer">
-        <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
-        <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.0</p>
-    </footer>
-</main>
+    <main class="content">
+        <h1>Kashiwazaki SEO Super Access Log マニュアル</h1>
+        <img src="images/main-visual.png" alt="Super Access Log メインビジュアル" style="width:100%;border-radius:8px;margin-bottom:24px;">
+        <p class="lead">WordPress サイトへのアクセスを 1 件ずつ記録し、一覧・グラフ・CSV で確かめられるアクセスログのプラグインです。このマニュアルでは、画面にあるすべての項目の意味と使い方を説明します。</p>
 
-<div class="lightbox"></div>
-<script src="js/manual.js?v=1"></script>
+
+        <p>サイトに誰が・いつ・どのページに来たのか、どこから来たのか、ボットなのか人なのか。アクセス解析サービスの集計値だけでは分からない「1 件ずつの記録」を、WordPress の中に残して確かめられます。記録は自動で行われ、管理画面の 1 つのページ（3 つのタブ）ですべての操作ができます。</p>
+
+        <h2>主な機能</h2>
+        <div class="feature-cards">
+            <div class="feature-card">
+                <span class="icon">&#128221;</span>
+                <h3>自動で記録</h3>
+                <p>ページの閲覧を 1 件ずつ記録します。静的な HTML ページも、コードを貼れば同じログに記録できます。</p>
+            </div>
+            <div class="feature-card">
+                <span class="icon">&#128200;</span>
+                <h3>絞り込みとグラフ</h3>
+                <p>16 の条件で絞り込み、日ごとの推移と 5 つの観点の割合をグラフで確かめられます。</p>
+            </div>
+            <div class="feature-card">
+                <span class="icon">&#128737;</span>
+                <h3>管理と防御</h3>
+                <p>古いログの自動削除、CSV の書き出しと取り込み、訪問者や User-Agent によるブロックができます。</p>
+            </div>
+        </div>
+
+        <figure class="infographic">
+            <img src="images/infographics/ig-overview.png" alt="できること: 記録する・見る・管理する・守る">
+            <figcaption>このプラグインでできること</figcaption>
+        </figure>
+
+        <h2>画面の構成</h2>
+        <p>WordPress 管理画面の左メニューにある「<strong>Kashiwazaki SEO Access Log</strong>」を開くと、次の 3 つのタブを持つ 1 ページが表示されます。タブを切り替えてもページは再読み込みされず、前回開いていたタブが次に開いたときも選ばれた状態になります。</p>
+        <table>
+            <thead><tr><th style="width:20%;">タブ</th><th>できること</th><th style="width:30%;">説明しているページ</th></tr></thead>
+            <tbody>
+                <tr><td>メイン</td><td>ログの一覧、絞り込み、合計とユニーク訪問者数、アクセスの推移グラフ、割合のグラフ、訪問者のブロック</td><td><a href="main-screen.html">メイン画面の見方</a> / <a href="filters.html">絞り込み</a> / <a href="charts.html">グラフの見方</a> / <a href="log-table.html">ログ一覧とブロック</a></td></tr>
+                <tr><td>ログの管理</td><td>データベースの状態の確認と軽量化、キャッシュの管理、ログの削除、CSV の書き出しと取り込み、動作の確認</td><td><a href="log-management.html">データベースとキャッシュ</a> / <a href="log-delete.html">ログの削除</a> / <a href="csv.html">CSV</a></td></tr>
+                <tr><td>設定</td><td>表示する列、記録から外すアクセス、自動削除、国の判定、静的ページの計測、疑わしいアクセスの判定、ブロック</td><td><a href="settings-basic.html">設定：表示と記録</a> / <a href="settings-filter-block.html">設定：ログフィルタとブロック</a> / <a href="static-tracking.html">静的ページの計測</a></td></tr>
+            </tbody>
+        </table>
+
+        <figure class="screenshot">
+            <img src="images/screenshots/10-main-tab-full.png" alt="メインタブの全体" class="lightbox-trigger">
+            <figcaption>「メイン」タブ。上から絞り込み、合計、アクセスの推移、割合のグラフ、ログの一覧が並びます</figcaption>
+        </figure>
+
+        <h2>記録される内容</h2>
+        <p>1 件のアクセスごとに、次の情報を記録します。どのアクセスが記録されないかは「<a href="recording.html">記録のルール</a>」で説明しています。</p>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>日時</td><td>アクセスがあった日時</td></tr>
+                <tr><td>訪問者 ID</td><td>ブラウザに保存する Cookie で見分ける、訪問者ごとの ID</td></tr>
+                <tr><td>IP アドレス</td><td>アクセス元の IP アドレス（Cloudflare などを経由していても、訪問者の IP アドレスを記録します）</td></tr>
+                <tr><td>国</td><td>ブラウザの言語設定などから推定した国コード</td></tr>
+                <tr><td>ページ</td><td>開かれたページのパス（静的ページは URL）</td></tr>
+                <tr><td>方式・結果</td><td>リクエストの方式（GET など）と、応答の状態を表す番号（200 や 404 など）</td></tr>
+                <tr><td>参照元</td><td>そのページに来る前のページ（リファラー）</td></tr>
+                <tr><td>ブラウザ</td><td>ブラウザやボットの名前（User-Agent）</td></tr>
+                <tr><td>ログイン中のユーザー</td><td>WordPress にログインしていればユーザー ID</td></tr>
+                <tr><td>ボットかどうか</td><td>User-Agent から判定した結果</td></tr>
+                <tr><td>訪問タイプ</td><td>新規・リピーター・ページ遷移のどれか</td></tr>
+                <tr><td>出どころ</td><td>WordPress のページ・静的ページ・CSV から取り込んだもの、のどれか</td></tr>
+            </tbody>
+        </table>
+
+        <h2>SEO / GEO における活かし方</h2>
+        <h3>SEO（検索エンジン最適化）</h3>
+        <p>検索エンジンのクローラー（Googlebot や bingbot など）がいつ・どのページを訪れているかを、ボットの判定と User-Agent の絞り込みで確かめられます。クロールされていないページや、404 になっているページに気づく手がかりになります。どのページに人のアクセスが集まっているかも分かるので、改善の優先順位を決める材料になります。検索順位そのものへの効果は、検索エンジンの評価によります。</p>
+        <h3>GEO（生成 AI の検索への対応）</h3>
+        <p>既定のボットの判定には、GPTBot・ClaudeBot・PerplexityBot などの AI のクローラーが含まれています。AI のクローラーがどのページを読みに来ているかを、ほかのボットや人のアクセスと分けて確かめられます。AI の回答に引用されるかどうかは、各サービスの判断によります。</p>
+        <h3>表示の速さへの影響</h3>
+        <p>訪問者側のページには、追跡用の JavaScript を出力しません（静的ページの計測を使う場合を除く）。記録はページを返し終えた後にサーバー側で行うので、ページの表示を遅くしにくい作りです。</p>
+
+        <h2>このマニュアルの目次</h2>
+        <table>
+            <thead><tr><th style="width:30%;">ページ</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td><a href="setup.html">インストール・初期設定</a></td><td>導入、有効化したときに自動で行われること、最初にしておきたい設定</td></tr>
+                <tr><td><a href="main-screen.html">メイン画面の見方</a></td><td>メインタブの 5 つの領域と、合計・ユニーク訪問者数の見方</td></tr>
+                <tr><td><a href="filters.html">絞り込み</a></td><td>16 の絞り込み条件と、表示の時間帯</td></tr>
+                <tr><td><a href="charts.html">グラフの見方</a></td><td>アクセスの推移グラフと、5 つの観点の割合のグラフ</td></tr>
+                <tr><td><a href="log-table.html">ログ一覧とブロック</a></td><td>一覧表の 14 列、並べ替え、疑わしいアクセスの印、ブロックと解除</td></tr>
+                <tr><td><a href="recording.html">記録のルール</a></td><td>記録されるもの・されないもの、訪問タイプ・国・IP アドレスの決まり方</td></tr>
+                <tr><td><a href="settings-basic.html">設定：表示と記録</a></td><td>表示カラム、Cookie、アクセス除外、チャートの上限、自動クリーンアップ、国の判定</td></tr>
+                <tr><td><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></td><td>疑わしいキーワード、除外パターン、ボットの判定、静的ファイルの除外、ブロック</td></tr>
+                <tr><td><a href="static-tracking.html">静的ページの計測</a></td><td>WordPress ではないページのアクセスを記録する方法</td></tr>
+                <tr><td><a href="log-management.html">データベースとキャッシュ</a></td><td>データベースの状態、軽量化、キャッシュ、デバッグ情報</td></tr>
+                <tr><td><a href="log-delete.html">ログの削除</a></td><td>条件を指定した削除と、すべての削除</td></tr>
+                <tr><td><a href="csv.html">CSV エクスポート・インポート</a></td><td>ログの書き出しと取り込み、ファイルの管理</td></tr>
+                <tr><td><a href="automation.html">自動で行われること</a></td><td>定期処理と、有効化・無効化・削除・更新のときに起きること</td></tr>
+                <tr><td><a href="messages.html">メッセージ一覧</a></td><td>管理画面に出るメッセージの意味と対処</td></tr>
+                <tr><td><a href="troubleshooting.html">困ったとき</a></td><td>よくある困りごとの原因と対処</td></tr>
+                <tr><td><a href="glossary.html">用語集</a></td><td>このマニュアルに出てくる用語</td></tr>
+            </tbody>
+        </table>
+
+        <h2>動作要件</h2>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>要件</th></tr></thead>
+            <tbody>
+                <tr><td>WordPress</td><td>5.9 以上</td></tr>
+                <tr><td>PHP</td><td>7.4 以上</td></tr>
+                <tr><td>ブラウザ（管理画面）</td><td>最新の Chrome / Edge / Firefox / Safari。グラフの部品と国旗の画像を、インターネット上の配信元から読み込みます</td></tr>
+                <tr><td>マルチサイト</td><td>対応（サイトごとにログを記録します）</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-note">
+            <div class="callout-title">画面の文言について</div>
+            <p>画面の一部（一覧表の列名、Yes / No、トレンドの表示、訪問者向けのブロック画面など）は英語のまま表示されます。このマニュアルでは、画面に出る文言をそのまま引用して説明します。</p>
+        </div>
+
+        <nav class="page-nav">
+            <span></span>
+            <a href="setup.html" class="next">インストール・初期設定 &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
 </body>
 </html>

@@ -7,182 +7,140 @@
     <link rel="stylesheet" href="css/style.css?v=1">
 </head>
 <body>
-<button class="hamburger-btn" aria-label="メニュー">&#9776;</button>
-
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <h2 style="color:#fff;">Super Access Log</h2>
-        <span class="version">v1.0.0</span>
-        <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
-    </div>
-    <ul>
-        <li><a href="index.html">概要</a></li>
-        <li class="active"><a href="setup.html">インストール・初期設定</a></li>
-        <li><a href="log-management.html">ログ管理</a></li>
-        <li><a href="troubleshooting.html">トラブルシューティング</a></li>
-    </ul>
-</nav>
-
-<main class="content">
-    <h1>インストール・初期設定</h1>
-    <p class="lead">Kashiwazaki SEO Super Access Log のインストール方法と、アクセスログ記録に必要な基本設定を説明します。</p>
-
-    <h2>インストール手順</h2>
-
-    <div class="step">
-        <span class="step-number">1</span>
-        <div class="step-body">
-            <p>WordPress管理画面から <strong>プラグイン &gt; 新規追加</strong> に移動し、「Kashiwazaki SEO Super Access Log」を検索します。または、プラグインのZIPファイルを <strong>プラグイン &gt; 新規追加 &gt; プラグインのアップロード</strong> からアップロードします。</p>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
         </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">2</span>
-        <div class="step-body">
-            <p>「今すぐインストール」をクリックし、インストール完了後「有効化」をクリックします。有効化時にカスタムテーブル（<code>kssl_access_logs</code>）が自動作成されます。</p>
-        </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">3</span>
-        <div class="step-body">
-            <p>管理画面の左メニューに「Kashiwazaki SEO Access Log」が追加されます。クリックして設定画面を開きます。</p>
-        </div>
-    </div>
-
-    <figure class="screenshot">
-        <img src="images/screenshots/00-menu-location.png" alt="管理画面メニューの位置" class="lightbox-trigger">
-        <figcaption>管理画面の左メニューにプラグインが追加されます</figcaption>
-    </figure>
-
-    <div class="callout callout-tip">
-        <div class="callout-title">ヒント</div>
-        <p>有効化直後から、デフォルト設定でアクセスログの記録が開始されます。必要に応じて以下の設定を調整してください。</p>
-    </div>
-
-    <h2>基本設定</h2>
-
-    <h3>Cookie設定</h3>
-    <p>訪問者の識別にCookieを使用します。Cookie IDにより、同一ユーザーの再訪問をトラッキングできます。</p>
-
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">設定項目</th>
-                <th>説明</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Cookie有効期間</td>
-                <td>訪問者識別Cookieの有効時間（デフォルト: 24時間）</td>
-            </tr>
-            <tr>
-                <td>静的ファイルトラッキング</td>
-                <td>CSS/JS/画像などの静的ファイルへのアクセスも記録するかどうか</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="callout callout-note">
-        <div class="callout-title">補足</div>
-        <p>Cookieはフロントエンドでのみ設定されます。管理画面へのアクセスはトラッキング対象外です。</p>
-    </div>
-
-    <h3>データ保持期間</h3>
-    <p>アクセスログの保持期間を設定します。期間を超えたログは自動クリーンアップCronによって削除されます。</p>
-
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">設定項目</th>
-                <th>説明</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>保持日数</td>
-                <td>ログを保持する日数（デフォルト: 90日）</td>
-            </tr>
-            <tr>
-                <td>自動クリーンアップ</td>
-                <td>保持期間を超えたログを自動削除するON/OFF</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="callout callout-warning">
-        <div class="callout-title">注意</div>
-        <p>保持期間を短く設定すると、過去のアクセスデータが失われます。必要に応じてCSVエクスポートでバックアップを取ってから変更してください。</p>
-    </div>
-
-    <h3>ボット検出パターン</h3>
-    <p>User-Agentの文字列パターンでボットを自動識別します。デフォルトで主要な検索エンジンクローラーのパターンが登録されています。</p>
-
-    <div class="step">
-        <span class="step-number">1</span>
-        <div class="step-body">
-            <p>設定画面のボット検出セクションで、ボットとして識別するUser-Agentパターンを確認・編集します。</p>
-        </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">2</span>
-        <div class="step-body">
-            <p>パターンは正規表現で指定します。1行に1パターンを記述してください。</p>
-        </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">3</span>
-        <div class="step-body">
-            <p>パターンに一致するUser-Agentからのアクセスは、ログ上で「ボット」として自動分類されます。</p>
-        </div>
-    </div>
-
-    <h3>不審なアクセスの検出</h3>
-    <p>リクエストURLに特定のキーワード（<code>wp-config.php</code>、<code>.env</code>、<code>/etc/passwd</code>、SQLインジェクションパターンなど）が含まれるアクセスを不審なアクセスとして自動検出します。</p>
-
-    <h3>除外設定</h3>
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">設定項目</th>
-                <th>説明</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>除外URIパターン</td>
-                <td>ログ記録から除外するURIパターン（正規表現）</td>
-            </tr>
-            <tr>
-                <td>静的ファイル除外</td>
-                <td>CSS/JS/画像等の静的ファイルアクセスを除外</td>
-            </tr>
-            <tr>
-                <td>自サーバーIP除外</td>
-                <td>サーバー自身のIPアドレスからのアクセスを除外</td>
-            </tr>
-            <tr>
-                <td>空UA除外</td>
-                <td>User-Agentが空のアクセスをブロック</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <nav class="page-nav">
-        <a href="index.html" class="prev">&laquo; 概要</a>
-        <a href="log-management.html" class="next">ログ管理 &raquo;</a>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li class="active"><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
     </nav>
 
-    <footer class="manual-footer">
-        <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
-        <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.0</p>
-    </footer>
-</main>
+    <main class="content">
+        <h1>インストール・初期設定</h1>
+        <p class="lead">プラグインの導入から、最初にしておきたい設定までを順に説明します。有効化したときに自動で行われることも確認できます。</p>
 
-<div class="lightbox"></div>
-<script src="js/manual.js?v=1"></script>
+        <figure class="infographic">
+            <img src="images/infographics/ig-setup-flow.png" alt="導入の流れ: アップロード・有効化・自動で準備・最初の設定・記録開始">
+            <figcaption>導入から記録開始までの流れ</figcaption>
+        </figure>
+
+        <h2>インストール</h2>
+        <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+                <p><strong>プラグインのファイルを用意する</strong><br>GitHub のリポジトリから ZIP ファイルをダウンロードします。</p>
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+                <p><strong>アップロードする</strong><br>WordPress 管理画面の「プラグイン」→「新規追加」→「プラグインのアップロード」で ZIP ファイルを選び、「今すぐインストール」を押します。FTP などで <code>wp-content/plugins/</code> に置いても構いません。</p>
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+                <p><strong>有効化する</strong><br>「プラグイン」の一覧で「有効化」を押します。有効化した直後から、アクセスの記録が始まります。</p>
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">4</span>
+            <div class="step-content">
+                <p><strong>管理画面を開く</strong><br>左メニューに目のアイコンの「<strong>Kashiwazaki SEO Access Log</strong>」が追加されます。サイトの管理者（設定を変更できる権限を持つユーザー）だけに表示されます。</p>
+            </div>
+        </div>
+
+        <h2>有効化したときに自動で行われること</h2>
+        <table>
+            <thead><tr><th style="width:35%;">内容</th><th>説明</th></tr></thead>
+            <tbody>
+                <tr><td>ログを保存する場所を作る</td><td>ログを保存する場所をデータベースに用意します（すでにあればそのまま使います）。</td></tr>
+                <tr><td>設定の初期値を入れる</td><td>まだ設定していない項目に初期値を入れます。すでに設定した値は変えません。</td></tr>
+                <tr><td>新しく入れたサイトの自動クリーンアップ</td><td>初めて入れたサイトでは、自動クリーンアップをオン・保存期間 90 日にします。以前のバージョンから使っているサイトは、これまでの設定のままです。</td></tr>
+                <tr><td>定期処理の登録</td><td>毎日の古いログの削除（自動クリーンアップがオンのとき）と、1 時間ごとの見回りを登録します。詳しくは「<a href="automation.html">自動で行われること</a>」。</td></tr>
+                <tr><td>ボット判定の更新</td><td>ボット検出パターンが以前のバージョンの初期値のままなら、AI のクローラー（GPTBot など）を含む新しい初期値に更新します。自分で書き換えたパターンはそのままです。</td></tr>
+            </tbody>
+        </table>
+
+        <h2>最初にしておきたい設定</h2>
+        <p>初期値のままでも使えますが、次の 4 つを確かめておくと、あとで数字を読み違えにくくなります。どれも「設定」タブで変更し、ページの上か下の保存ボタンで保存します。</p>
+        <div class="step">
+            <span class="step-number">1</span>
+            <div class="step-content">
+                <p><strong>ログの保存期間を決める</strong><br>「自動クリーンアップを有効化」をオンにして、「ログ保存期間（日数）」を決めます。ログは増え続けるので、期限を決めておくと表示の遅さやデータベースの肥大化を防げます。目安は 30〜180 日です。→ <a href="settings-basic.html#auto-cleanup">自動クリーンアップ</a></p>
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">2</span>
+            <div class="step-content">
+                <p><strong>記録から外すページを決める</strong><br>自分や社内からの確認用のページ、監視サービスがアクセスする URL など、数えたくないアクセスがあれば「ログ除外URIパターン」に書きます。→ <a href="settings-filter-block.html#excluded-uri">ログ除外URIパターン</a></p>
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">3</span>
+            <div class="step-content">
+                <p><strong>表示の時間帯を選ぶ</strong><br>メインタブの時刻は、初期状態では世界標準時（UTC）で表示されます。日本のサイトなら、絞り込みの右端で「Tokyo (JST)」を選んでください（URL に残るので、ブックマークしておくと便利です）。→ <a href="filters.html#timezone">表示タイムゾーン</a></p>
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-number">4</span>
+            <div class="step-content">
+                <p><strong>国の判定を決める</strong><br>国はブラウザの言語設定から推定します。IP アドレスから国を調べたい場合は「IPアドレスから国コードを推定」をオンにします（外部のサービスに IP アドレスを送ります）。→ <a href="settings-basic.html#country">国コード取得</a></p>
+            </div>
+        </div>
+
+        <div class="callout callout-tip">
+            <div class="callout-title">おすすめ</div>
+            <p>まずは初期値で数日記録してから、「アクセス統計チャート」のユーザーエージェントとリファラードメインを見て、記録から外したいアクセスや、ブロックしたい相手がいないかを確かめるのがおすすめです。</p>
+        </div>
+
+        <h2>以前のバージョンから更新したとき</h2>
+        <p>1.0.1 では、ログの保存形式を軽量にし、表示を大幅に速くしました。更新すると、次のことが自動で行われます。</p>
+        <table>
+            <thead><tr><th style="width:35%;">内容</th><th>説明</th></tr></thead>
+            <tbody>
+                <tr><td>保存形式の移し替え</td><td>以前の形式のログは、裏で少しずつ新しい形式へ移し替えます。ログが約 20 万件より少なければ、管理画面を開いたときに自動で始まります。多い場合は「ログの管理」タブのボタンで始めます。移し替え中も、記録と閲覧はそのまま使えます。→ <a href="log-management.html#lightweight">データベースの軽量化</a></td></tr>
+                <tr><td>CSV ファイルの保管場所の移動</td><td>以前のバージョンがエクスポート・インポートの CSV ファイルを置いていた場所から、外から見られない保管場所へ、ファイルを自動で移します。移せなかった場合は、管理画面の上部に赤いお知らせが出ます。→ <a href="troubleshooting.html#old-csv-dir">困ったとき</a></td></tr>
+                <tr><td>集計の作成</td><td>合計・グラフを速く表示するための時間ごとの集計を、裏で自動的に作ります。作り終えるまでは、これまでどおりログから直接数えて表示します。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>移し替えの途中は、ログの削除・CSV のインポート・自動クリーンアップ・疑わしいキーワードの変更ができません。移し替えが終わると、自動で使えるようになります。</p>
+        </div>
+
+        <nav class="page-nav">
+            <a href="index.html" class="prev">&laquo; 概要</a>
+            <a href="main-screen.html" class="next">メイン画面の見方 &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
 </body>
 </html>

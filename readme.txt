@@ -1,9 +1,9 @@
 === Kashiwazaki SEO Super Access Log ===
 Contributors: Tsuyoshi Kashiwazaki
 Tags: log, access log, admin, security, tracking, stats, seo, user, visitor, analytics, trend chart, calendar, performance
-Requires at least: 5.8
+Requires at least: 5.9
 Tested up to: 6.5
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,7 +57,7 @@ Kashiwazaki SEO Super Access Logは、サイトのトラフィックを詳細に
 はい！プラグインはデフォルトで過去1ヶ月を表示しますが、24時間、1週間、3ヶ月、6ヶ月、12ヶ月に簡単に切り替えたり、期間プリセットドロップダウンを使用してカスタム日付範囲を設定したりできます。
 
 = デフォルトで表示されるログ数は？ =
-ログテーブルは、読み込みを高速化するためにデフォルトでページあたり10件のログを表示します。ログテーブルの上のドロップダウンセレクターを使用して、ページあたり30、50、または100件のログに変更できます。
+ログテーブルは、読み込みを高速化するためにページあたり10件のログを表示します。一覧の下のページ送りで、次のページを表示できます。
 
 = 訪問者/User-Agentブロックはどのように機能しますか？ =
 リクエストが来ると、プラグインは設定で構成したブロックリストに対して訪問者のCookie IDとUser-Agent文字列をチェックします。一致が見つかった場合、プラグインは実行を停止し、503 Service Unavailableエラーページを提供してサイトへのアクセスを防ぎます。
@@ -85,6 +85,16 @@ Kashiwazaki SEO Super Access Logは、サイトのトラフィックを詳細に
 7. プリセット構成を備えた柔軟なチャートパフォーマンス設定
 
 == 変更履歴 ==
+
+= 1.0.1 =
+*   ログの保存形式を軽量化し、管理画面の表示を大幅に高速化（12 ヶ月表示で約 2 分 → 約 1 秒）
+*   合計・ユニーク訪問者・推移グラフ・各チャートを時間ごとの集計から表示（集計は自動で作成・更新）
+*   旧形式のログを更新後に自動で新しい形式へ移し替え
+*   エクスポート・インポート用の CSV を公開されない場所に保存
+*   「疑わしいアクセスを含める」の絞り込みを追加
+*   条件付き削除は件数の確認後だけ実行でき、条件を変えたら確認し直し
+*   訪問者 IP の判定、過去24時間、日付のタイムゾーン、除外 URI、空の User-Agent の拒否などの不具合を修正
+*   詳しくは CHANGELOG.md を参照
 
 = 1.0.0 =
 *   初回リリース

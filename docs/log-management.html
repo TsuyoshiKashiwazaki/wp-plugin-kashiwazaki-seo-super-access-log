@@ -3,275 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ログ管理 - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <title>データベースとキャッシュ - Kashiwazaki SEO Super Access Log マニュアル</title>
     <link rel="stylesheet" href="css/style.css?v=1">
 </head>
 <body>
-<button class="hamburger-btn" aria-label="メニュー">&#9776;</button>
-
-<nav class="sidebar">
-    <div class="sidebar-header">
-        <h2 style="color:#fff;">Super Access Log</h2>
-        <span class="version">v1.0.0</span>
-        <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
-    </div>
-    <ul>
-        <li><a href="index.html">概要</a></li>
-        <li><a href="setup.html">インストール・初期設定</a></li>
-        <li class="active"><a href="log-management.html">ログ管理</a></li>
-        <li><a href="troubleshooting.html">トラブルシューティング</a></li>
-    </ul>
-</nav>
-
-<main class="content">
-    <h1>ログ管理</h1>
-    <p class="lead">アクセスログの閲覧、フィルタリング、Chart.jsによるトレンドチャート表示、CSV出力・インポートなどのログ管理機能を解説します。</p>
-
-    <h2>アクセスログの閲覧</h2>
-
-    <p>管理画面のログ一覧では、記録されたアクセスログをテーブル形式で確認できます。</p>
-
-    <figure class="screenshot">
-        <img src="images/screenshots/02-accesslog-detail.png" alt="アクセスログ管理" class="lightbox-trigger">
-        <figcaption>アクセスログの一覧と分析</figcaption>
-    </figure>
-
-    <h3>表示カラム</h3>
-
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">カラム名</th>
-                <th>説明</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>日時</td>
-                <td>アクセスが記録された日時</td>
-            </tr>
-            <tr>
-                <td>訪問者ID</td>
-                <td>Cookie IDベースの訪問者識別子</td>
-            </tr>
-            <tr>
-                <td>IPアドレス</td>
-                <td>アクセス元のIPアドレス</td>
-            </tr>
-            <tr>
-                <td>リクエストURL</td>
-                <td>アクセスされたページのURL</td>
-            </tr>
-            <tr>
-                <td>User-Agent</td>
-                <td>ブラウザ・ボットのUser-Agent文字列</td>
-            </tr>
-            <tr>
-                <td>ボット判定</td>
-                <td>ボット検出パターンに一致したかどうか</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="callout callout-tip">
-        <div class="callout-title">ヒント</div>
-        <p>表示カラムは設定画面でカスタマイズ可能です。必要なカラムのみを表示して視認性を高めることができます。</p>
-    </div>
-
-    <h2>フィルタリング</h2>
-
-    <p>ログ一覧は様々な条件でフィルタリングできます。</p>
-
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">フィルタ条件</th>
-                <th>説明</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>日付範囲</td>
-                <td>開始日と終了日を指定してログを絞り込み</td>
-            </tr>
-            <tr>
-                <td>訪問者ID</td>
-                <td>特定の訪問者IDに絞り込み</td>
-            </tr>
-            <tr>
-                <td>IPアドレス</td>
-                <td>特定のIPアドレスに絞り込み</td>
-            </tr>
-            <tr>
-                <td>URL</td>
-                <td>リクエストURLのキーワードで絞り込み</td>
-            </tr>
-            <tr>
-                <td>ボット/ヒューマン</td>
-                <td>ボットアクセスまたは実ユーザーアクセスに絞り込み</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="step">
-        <span class="step-number">1</span>
-        <div class="step-body">
-            <p>ログ一覧上部のフィルタエリアで条件を入力または選択します。</p>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
         </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">2</span>
-        <div class="step-body">
-            <p>「フィルタ適用」ボタンをクリックすると、AJAXで条件に一致するログのみが表示されます。</p>
-        </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">3</span>
-        <div class="step-body">
-            <p>「フィルタクリア」ボタンで条件をリセットし、全ログを表示できます。</p>
-        </div>
-    </div>
-
-    <h2>トレンドチャート</h2>
-
-    <p>Chart.jsを使用したトレンドチャートで、アクセス傾向を視覚的に把握できます。</p>
-
-    <h3>チャートの種類</h3>
-
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">チャート</th>
-                <th>表示内容</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>アクセス推移</td>
-                <td>日別・時間別のアクセス数推移を折れ線グラフで表示</td>
-            </tr>
-            <tr>
-                <td>ページ別アクセス</td>
-                <td>アクセスの多いページをランキング形式で表示</td>
-            </tr>
-            <tr>
-                <td>ボット割合</td>
-                <td>ボットアクセスと実ユーザーアクセスの比率を表示</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <div class="callout callout-note">
-        <div class="callout-title">補足</div>
-        <p>チャートの最大レコード数は設定で制限できます（デフォルト: 100,000件）。大量のログデータがある場合、チャート表示のパフォーマンスに影響する可能性があります。</p>
-    </div>
-
-    <h2>CSV出力</h2>
-
-    <p>アクセスログをCSV形式でエクスポートできます。</p>
-
-    <div class="step">
-        <span class="step-number">1</span>
-        <div class="step-body">
-            <p>ログ管理画面で「CSVエクスポート」ボタンをクリックします。</p>
-        </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">2</span>
-        <div class="step-body">
-            <p>現在のフィルタ条件が適用されたログデータがCSVファイルとしてダウンロードされます。</p>
-        </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">3</span>
-        <div class="step-body">
-            <p>ダウンロードしたCSVファイルは、Excel、Googleスプレッドシート、その他の分析ツールで活用できます。</p>
-        </div>
-    </div>
-
-    <div class="callout callout-tip">
-        <div class="callout-title">ヒント</div>
-        <p>定期的にCSVエクスポートを行い、データ保持期間で自動削除される前のログをバックアップすることを推奨します。</p>
-    </div>
-
-    <h2>CSVインポート</h2>
-
-    <p>以前エクスポートしたCSVファイルをインポートして、ログデータを復元できます。</p>
-
-    <div class="step">
-        <span class="step-number">1</span>
-        <div class="step-body">
-            <p>ログ管理画面で「CSVインポート」ボタンをクリックします。</p>
-        </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">2</span>
-        <div class="step-body">
-            <p>インポートするCSVファイルを選択します。ファイル形式は本プラグインでエクスポートしたCSV形式に準拠している必要があります。</p>
-        </div>
-    </div>
-
-    <div class="step">
-        <span class="step-number">3</span>
-        <div class="step-body">
-            <p>インポートが実行され、データがカスタムテーブルに追加されます。</p>
-        </div>
-    </div>
-
-    <div class="callout callout-warning">
-        <div class="callout-title">注意</div>
-        <p>大量のデータをインポートする場合、処理に時間がかかる場合があります。PHPの実行時間制限やメモリ制限に注意してください。</p>
-    </div>
-
-    <h2>訪問者ブロック</h2>
-
-    <p>特定の訪問者IDやUser-Agentからのアクセスをブロックする機能があります。</p>
-
-    <table>
-        <thead>
-            <tr>
-                <th style="width:35%;">ブロック種別</th>
-                <th>説明</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>訪問者IDブロック</td>
-                <td>特定のCookie IDを持つ訪問者のアクセスをログから除外</td>
-            </tr>
-            <tr>
-                <td>User-Agentブロック</td>
-                <td>特定のUser-Agentパターンに一致するアクセスをブロック</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h2>自動クリーンアップ</h2>
-
-    <p>設定した保持期間を超えたログデータは、Cronジョブ（<code>kssl_cleanup_old_logs</code>）により自動的に削除されます。また、月次の最適化Cron（<code>kssl_monthly_optimization</code>）により、テーブルの最適化が実行されます。</p>
-
-    <div class="callout callout-note">
-        <div class="callout-title">補足</div>
-        <p>自動クリーンアップはバッチ処理（1,000件ずつ）で実行されるため、サーバーへの負荷を最小限に抑えています。</p>
-    </div>
-
-    <nav class="page-nav">
-        <a href="setup.html" class="prev">&laquo; インストール・初期設定</a>
-        <a href="troubleshooting.html" class="next">トラブルシューティング &raquo;</a>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li class="active"><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
     </nav>
 
-    <footer class="manual-footer">
-        <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
-        <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.0</p>
-    </footer>
-</main>
+    <main class="content">
+        <h1>データベースとキャッシュ</h1>
+        <p class="lead">「ログの管理」タブの前半です。データベースの状態の確認、軽量化（新しい保存形式への移し替え）、キャッシュの管理、デバッグ情報を説明します。</p>
 
-<div class="lightbox"></div>
-<script src="js/manual.js?v=1"></script>
+        <figure class="screenshot">
+            <img src="images/screenshots/30-lm-tab-full.png" alt="ログの管理タブの全体" class="lightbox-trigger">
+            <figcaption>「ログの管理」タブの全体。上から、データベース状態・軽量化・キャッシュ管理・ログ削除・CSV・デバッグ情報</figcaption>
+        </figure>
+
+        <h2 id="db-status">📊 データベース状態</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/31-lm-db-status.png" alt="データベース状態" class="lightbox-trigger">
+            <figcaption>パフォーマンススコアと 4 枚のカード</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:28%;">表示</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>パフォーマンススコア</td><td>ログを保存しているデータベースの状態を 100 点満点で表したものです。80 点以上は緑「✅ 優良 - データベースは最適な状態です」、60 点以上は黄「⚠️ 注意 - 最適化を推奨します」、それ未満は赤「❌ 要改善 - 今すぐ最適化してください」。</td></tr>
+                <tr><td>総レコード数</td><td>保存しているログの件数です。</td></tr>
+                <tr><td>データサイズ</td><td>ログが使っている容量です。</td></tr>
+                <tr><td>インデックスサイズ</td><td>検索を速くするための索引が使っている容量と、索引の数です。</td></tr>
+                <tr><td>断片化</td><td>削除などで生じた空き領域の割合です。20% を超えると赤く表示されます。</td></tr>
+            </tbody>
+        </table>
+        <h3>スコアの計算</h3>
+        <p>100 点から、次の分を引いて計算します。</p>
+        <table>
+            <thead><tr><th style="width:40%;">条件</th><th>減点</th></tr></thead>
+            <tbody>
+                <tr><td>断片化が 30% 超 / 20% 超 / 10% 超</td><td>−30 / −20 / −10</td></tr>
+                <tr><td>索引（インデックス）が 10 個未満</td><td>−20</td></tr>
+                <tr><td>1 件あたりの大きさが 1KB 超</td><td>−10</td></tr>
+                <tr><td>「統計情報を更新」から 60 日超 / 30 日超 / 一度も実行していない</td><td>−15 / −10 / −15</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-note">
+            <div class="callout-title">「インデックスが不足しています」と表示されるとき</div>
+            <p>1.0.1 の軽量な保存形式は、必要な索引だけに絞っているため、索引は 3 個です。そのためスコアは常に 20 点引かれ（最高 80 点）、「🔍 インデックスが不足しています」のお知らせが出続けます。これは軽量化によるもので、問題ではありません。「統計情報を更新」を押しても索引は増えません。</p>
+        </div>
+        <h3>その他のお知らせ</h3>
+        <table>
+            <thead><tr><th style="width:40%;">お知らせ</th><th>意味と対処</th></tr></thead>
+            <tbody>
+                <tr><td>⚠️ 高レベルの断片化を検出 / ⚠️ 中レベルの断片化を検出</td><td>空き領域が 20% / 10% を超えています。大量に削除した後に出やすく、ふだんの動作には大きな影響はありません。</td></tr>
+                <tr><td>💾 データベース容量が大きくなっています</td><td>ログの容量が 1000MB を超えています。自動クリーンアップや削除で、古いログを減らすことを検討してください。</td></tr>
+                <tr><td>⏰ 最適化が実行されていません / ⏰ 最適化から時間が経過しています</td><td>「統計情報を更新」を一度も実行していない、または 60 日以上経っています。</td></tr>
+            </tbody>
+        </table>
+
+        <h3>📋 詳細情報を表示</h3>
+        <figure class="screenshot">
+            <img src="images/screenshots/32-lm-db-status-details.png" alt="データベースの詳細情報" class="lightbox-trigger">
+            <figcaption>押すと、保存先の詳しい情報が開きます</figcaption>
+        </figure>
+        <p>次の項目を表示します。困ったときに、サーバーの管理者へ状態を伝えるのに使います。</p>
+        <table>
+            <thead><tr><th style="width:28%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>テーブル名</td><td>ログを保存している場所の名前</td></tr>
+                <tr><td>エンジン / ROW_FORMAT</td><td>データベースの保存の方式</td></tr>
+                <tr><td>平均レコードサイズ</td><td>ログ 1 件あたりの平均の大きさ</td></tr>
+                <tr><td>合計サイズ</td><td>ログと索引の容量の合計</td></tr>
+                <tr><td>最終最適化</td><td>最後に「統計情報を更新」した日時。記録がなければ「不明」</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="lightweight">🔧 データベースの軽量化</h2>
+        <figure class="infographic">
+            <img src="images/infographics/ig-lightweight.png" alt="旧形式のログを軽量な形式へ移す流れ">
+            <figcaption>以前の形式のログを、裏で少しずつ軽量な形式へ移し替えます</figcaption>
+        </figure>
+        <figure class="screenshot">
+            <img src="images/screenshots/33-lm-lightweight.png" alt="軽量な形式になっている状態" class="lightbox-trigger">
+            <figcaption>移し替えが済んでいる（または新しく入れた）サイトの表示</figcaption>
+        </figure>
+        <p>1.0.1 では、ログの保存形式を軽量にしました。以前のバージョンから更新したサイトでは、ここで状態を確かめ、移し替えを始めます。表示は状態によって変わります。</p>
+        <table>
+            <thead><tr><th style="width:40%;">表示</th><th>状態とすること</th></tr></thead>
+            <tbody>
+                <tr><td>✅ ログテーブルは軽量な形式です。</td><td>移し替えが済んでいます。何もする必要はありません。</td></tr>
+                <tr><td>ログテーブルは旧形式です (約 N 行 / M MB)。…</td><td>以前の形式のままです。「<strong>軽量化の移行を開始する</strong>」を押すと移し替えを始めます。ログが約 20 万件より少なければ、管理画面を開いたときに自動で始まります。</td></tr>
+                <tr><td>⏳ 軽量化の移行: コピー中（N%）/ 照合中（N%）</td><td>移し替えの途中です。記録と閲覧はそのまま使えます。進み具合はページを開き直すと更新されます（自動では更新されません）。</td></tr>
+                <tr><td>⏳ 疑わしいアクセスの判定を更新中です (完了までは従来の方法で絞り込みます)。</td><td>移し替えの仕上げや、疑わしいキーワードの変更の後に、すでにあるログの判定をやり直しています。</td></tr>
+                <tr><td>前回の移行は失敗しました: …（データは旧テーブルのまま使えます）</td><td>移し替えを始められませんでした。データは以前の形式のまま使えます。時間をおいて、もう一度「軽量化の移行を開始する」を押してください。</td></tr>
+                <tr><td>照合で不一致があったため、旧テーブルを残しています: …</td><td>移し替えた内容の照合で違いが見つかったため、以前のデータを消さずに残しています。「<strong>移行を再開する</strong>」を押すと、照合と修復をやり直します。</td></tr>
+            </tbody>
+        </table>
+        <ul>
+            <li>移し替えは裏で少しずつ進みます。完了までの時間は、ログの件数とサーバーの性能によります。</li>
+            <li>移し替えの間は、元のデータと同じくらいのデータベースの容量を一時的に使います。</li>
+            <li>移し替えの間は、ログの削除・CSV のインポート・自動クリーンアップ・疑わしいキーワードの変更ができません。</li>
+            <li>「移行を再開する」は、照合で違いが見つかったとき、または 10 分以上進んでいないときだけ表示されます。</li>
+            <li>「軽量化の移行を開始する」「移行を再開する」を押しても、結果のメッセージは出ません。ページが開き直され、進み具合の表示に変われば始まっています。</li>
+        </ul>
+
+        <h3>統計情報を更新</h3>
+        <p>「統計情報の更新 (ANALYZE TABLE。数秒で終わります。大量に削除した後などに):」の下のボタンです。データベースが検索のしかたを決めるための情報を最新にします。大量に削除した後に押すと、表示が速くなることがあります。</p>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>「<strong>統計情報を更新</strong>」を押します（確認はありません）。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>裏で処理が始まり、「バックグラウンド処理を開始しました - データベースを最適化しています...」「バックグラウンド処理実行中: … 進行状況: N%」と進み具合が表示されます。このページを開いたまま待ちます。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>「✓ 最適化完了! 統計情報を更新しました」とレコード数・テーブルサイズ・インデックス数が表示され、ページが開き直されます。</p></div></div>
+        <div class="callout callout-note">
+            <div class="callout-title">補足</div>
+            <p>処理中・失敗後は、ボタンの文字が「最適化中…」「今すぐデータベースを最適化」に変わりますが、行う処理は同じ（統計情報の更新）です。サイトの定期処理（WP-Cron）が止まっているサーバーでは、待ち状態のまま終わらないことがあります。</p>
+        </div>
+
+        <h2 id="cache">🗄️ キャッシュ管理</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/34-lm-cache.png" alt="キャッシュ管理" class="lightbox-trigger">
+            <figcaption>キャッシュの件数と、クリアのボタン</figcaption>
+        </figure>
+        <p>アクセスの推移グラフは、表示を速くするため、一度作ったデータを一時的に保存（キャッシュ）しています。ここでは、そのキャッシュの数を確かめたり、消したりできます。</p>
+        <table>
+            <thead><tr><th style="width:30%;">表示・操作</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>キャッシュ数 / 有効なキャッシュ / 期限切れキャッシュ / 総サイズ</td><td>アクセスの推移グラフのキャッシュの件数と容量です。</td></tr>
+                <tr><td>すべてのキャッシュをクリア</td><td>推移グラフのキャッシュをすべて消します。「すべてのトレンドデータキャッシュをクリアします。よろしいですか？」と確認され、「✓ クリア完了!」の後にページが開き直されます。</td></tr>
+                <tr><td>期限切れキャッシュのみクリア</td><td>期限の切れたキャッシュだけを消します（確認はありません）。</td></tr>
+                <tr><td>⚠️ 期限切れキャッシュが残っています</td><td>期限の切れたキャッシュが 1 件以上あるときに出ます。期限切れのキャッシュは使われないので、表示には影響しません。</td></tr>
+                <tr><td>📋 キャッシュ詳細を表示</td><td>キャッシュごとの「キャッシュキー」（見分けるための名前）・「ステータス」（⚠️ 期限切れ / ✅ 有効）・「有効期限」・「残り時間」・「サイズ」の一覧が開きます（キャッシュが 1 件以上あるときだけ）。</td></tr>
+            </tbody>
+        </table>
+        <figure class="screenshot">
+            <img src="images/screenshots/35-lm-cache-details.png" alt="キャッシュ詳細" class="lightbox-trigger">
+            <figcaption>キャッシュ詳細を開いた状態</figcaption>
+        </figure>
+        <div class="callout callout-note">
+            <div class="callout-title">実際の動作についての補足</div>
+            <p>画面の説明では「トレンドデータは30秒間キャッシュされます」となっていますが、実際には最大 10 分間保存します。ログの削除・インポート・設定の保存をすると、キャッシュは自動で使われなくなるので、ふだんクリアする必要はありません。また、「🗑️ 期限切れキャッシュを自動的に削除する」のチェック（切り替えると「期限切れキャッシュの自動削除を有効にしました」などと表示）は保存されますが、現在のバージョンでは 2 つのボタンの動作は変わりません。</p>
+        </div>
+
+        <h2 id="debug">🔍 デバッグ情報</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/56-lm-debug.png" alt="デバッグ情報" class="lightbox-trigger">
+            <figcaption>記録が正しく動いているかを確かめる情報</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:28%;">表示・操作</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>データベーステーブル</td><td>ログの保存先があれば「✓ 存在」、なければ「✗ 不存在」です。</td></tr>
+                <tr><td>ログ件数</td><td>保存しているログの件数です。</td></tr>
+                <tr><td>初期化フック</td><td>アクセスを記録するしくみが動いていれば「✓ 登録済み」です。</td></tr>
+                <tr><td>最新ログ</td><td>いちばん新しいログの日時（世界標準時）、IP アドレス、ページです。ログがなければ「ログが見つかりません」。</td></tr>
+                <tr><td>テストログ記録</td><td>試しにログを 1 件記録して、記録のしくみが動くかを確かめます。成功すると「✓ 成功！ Test log successfully recorded!」と記録の ID と日時が表示されます。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>テストログは本物のログとして 1 件追加され、一覧や合計に混ざります（User-Agent が「Test User Agent (KSSL Test Log #…)」、ソースが Static、IP アドレスは操作している人のもの）。確かめた後、不要なら IP アドレスを指定した削除などで消してください。操作している人の IP アドレスがサーバーと同じ場合や、除外の設定に当てはまる場合は、記録に失敗します。</p>
+        </div>
+
+        <nav class="page-nav">
+            <a href="static-tracking.html" class="prev">&laquo; 静的ページの計測</a>
+            <a href="log-delete.html" class="next">ログの削除 &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
 </body>
 </html>

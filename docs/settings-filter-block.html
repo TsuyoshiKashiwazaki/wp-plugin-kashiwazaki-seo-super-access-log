@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設定：ログフィルタとブロック - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li class="active"><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>設定：ログフィルタとブロック</h1>
+        <p class="lead">「設定」タブの後半 2 つのまとまり（ログフィルタ設定・ブロック設定）の全項目を説明します。疑わしいアクセスの判定、記録から外すアクセス、アクセスの拒否をここで決めます。</p>
+
+        <p>保存のしかたは「<a href="settings-basic.html">設定：表示と記録</a>」と同じです（上か下の保存ボタンで、すべての項目をまとめて保存します）。</p>
+
+        <h2>ログフィルタ設定</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/67-settings-log-filters.png" alt="ログフィルタ設定" class="lightbox-trigger">
+            <figcaption>疑わしいキーワード・ログ除外URIパターン・ボット検出パターン・静的ファイルの除外</figcaption>
+        </figure>
+
+        <h3 id="suspicious-keywords">疑わしいキーワード</h3>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>何をするか</td><td>攻撃の試みやスキャナーに多い文字列を登録します。ページの URL か User-Agent にこれらを含むアクセスを「疑わしいアクセス」とします。アクセス自体は拒否しません。</td></tr>
+                <tr><td>書き方</td><td>1 行に 1 つ。大文字と小文字は区別しません。</td></tr>
+                <tr><td>初期値（18 個）</td><td><code>wp-config.php</code> / <code>.env</code> / <code>.git</code> / <code>/etc/passwd</code> / <code>SELECT</code> / <code>UNION SELECT</code> / <code>&lt;script</code> / <code>../</code> / <code>../../</code> / <code>%00</code> / <code>%2e%2e</code> / <code>eval(</code> / <code>base64_decode</code> / <code>system(</code> / <code>exec(</code> / <code>shell_exec</code> / <code>phpinfo</code> / <code>proc_open</code></td></tr>
+                <tr><td>使われる場所</td><td>絞り込みの「疑わしいアクセスを含める」、一覧の赤い印、削除とエクスポートの「疑わしいアクセスのみ」。場所ごとの基準の違いは「<a href="recording.html#suspicious">記録のルール</a>」。</td></tr>
+                <tr><td>変更して保存すると</td><td>すでに記録したログの判定を、裏で自動的にやり直します。やり直しが終わるまでは、その場で文字を照らし合わせて絞り込むので、表示に少し時間がかかることがあります。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>ログの保存形式を移し替えている途中は、キーワードの変更は保存されず「テーブル移行中のため、疑わしいキーワードの変更は保存されませんでした。移行完了後にもう一度保存してください。」と表示されます。移し替えが終わってから保存し直してください。</p>
+        </div>
+        <div class="callout callout-tip">
+            <div class="callout-title">おすすめ</div>
+            <p>短すぎる語（例: <code>a</code>）や、サイトの普通のページに含まれる語を入れると、普通のアクセスまで疑わしいアクセスとして除かれてしまいます。攻撃にしか出てこない、特徴のある文字列を入れてください。</p>
+        </div>
+
+        <h3 id="excluded-uri">ログ除外URIパターン</h3>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>何をするか</td><td>ここに書いた文字をページの URL に含むアクセスを、記録しません。アクセス自体は許可します（ページは普通に表示されます）。</td></tr>
+                <tr><td>書き方</td><td>1 行に 1 パターン。URL の一部に一致すれば対象です（例: <code>/healthcheck</code>、<code>/wp-cron.php</code>）。大文字と小文字は区別しません。</td></tr>
+                <tr><td>初期値</td><td>空（何も除外しない）</td></tr>
+                <tr><td>すでに記録したログ</td><td>削除はしませんが、一覧・合計・グラフには表示しなくなります。パターンを消すと、再び表示されます。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-tip">
+            <div class="callout-title">おすすめ</div>
+            <p>監視サービスが定期的に開く URL、社内の確認用のページ、プレビュー用の URL など、訪問者の数に入れたくないページを登録すると、数字が実態に近くなります。</p>
+        </div>
+
+        <h3 id="bot-pattern">ボット検出パターン</h3>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>何をするか</td><td>User-Agent がこのパターンに当てはまるアクセスを「ボット」と判定します。</td></tr>
+                <tr><td>書き方</td><td>正規表現（文字のパターンを表す書き方）で書きます。初期値は <code>/(bot|crawl|slurp|spider|…|GPTBot|ChatGPT-User|ClaudeBot|PerplexityBot|…)/i</code> のように、名前を <code>|</code> で区切って並べた形です。名前を足すときは、<code>|</code> で区切って括弧の中に加えます。</td></tr>
+                <tr><td>初期値に含まれるもの</td><td>一般的なクローラーを表す語（bot、crawl、spider など）、検索エンジン（Googlebot、bingbot、YandexBot、Baiduspider など）、SNS のプレビュー（facebookexternalhit、twitterbot など）、SEO ツール（AhrefsBot、SemrushBot、MJ12bot など）、AI のクローラー（GPTBot、ChatGPT-User、Google-Extended、ClaudeBot、PerplexityBot、CCBot、Bytespider など）</td></tr>
+                <tr><td>空にして保存すると</td><td>初期値のパターンを使います。</td></tr>
+                <tr><td>書き方が正しくないとき</td><td>保存されず「ボット検出パターンが正規表現として正しくないため、変更は保存されませんでした。」と表示されます。前の値のままです。</td></tr>
+                <tr><td>効く範囲</td><td>保存した後に記録するアクセスだけです。すでに記録したログの「Is Bot?」は変わりません。</td></tr>
+            </tbody>
+        </table>
+
+        <h3 id="static-files">静的ファイルを除外 / 静的ファイル除外パターン</h3>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>静的ファイルを除外</td><td>「JS、CSS、画像などの静的ファイルへのアクセスをログから除外する」。初期値はオン。オンのとき、下のパターンに一致するファイルへのアクセスを記録しません。</td></tr>
+                <tr><td>静的ファイル除外パターン</td><td>除外するファイルの拡張子のパターン（正規表現）です。初期値は .css、.js、.json、.xml、.txt、画像、フォント、動画、圧縮ファイルなどを含みます（画面に初期値が表示されます）。</td></tr>
+                <tr><td>オフにしても記録されないもの</td><td>css / js / jpg / png / gif / svg / ico / woff / woff2 / ttf / eot / map は、この設定とは別に、常に記録しません。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>パターンの書き方が正しくないと、お知らせは出ずに、その変更だけが保存されません。保存した後に画面を開き直して、変更が残っているかを確かめてください。</p>
+        </div>
+
+        <h2>ブロック設定</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/68-settings-block.png" alt="ブロック設定" class="lightbox-trigger">
+            <figcaption>ブロック対象訪問者ID・ブロック対象User Agent・User-Agentが空のアクセス（訪問者 ID は例に置き換えています）</figcaption>
+        </figure>
+
+        <h3 id="block-visitor">ブロック対象訪問者ID</h3>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>何をするか</td><td>ここに並んだ訪問者 ID の訪問者は、サイトを見られなくなります（「Access Restricted」の画面）。</td></tr>
+                <tr><td>書き方</td><td>1 行に 1 つ。末尾の <code>_KSSLID</code> まで含めた、訪問者 ID の全体を書きます（一覧の訪問者 ID にマウスを乗せると全体が表示されます）。255 文字を超える行は保存されません。</td></tr>
+                <tr><td>一覧の Block との関係</td><td>一覧で「Block」を押した訪問者 ID は、ここに自動で追加されます。ここから行を消して保存すると、ブロックを解除できます。</td></tr>
+            </tbody>
+        </table>
+
+        <h3 id="block-ua">ブロック対象User Agent</h3>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>何をするか</td><td>ここに書いた語を User-Agent に含むアクセスを拒否します。相手には「Access Restricted」の画面（Your access to this site has been temporarily restricted due to your User Agent. …）を返します。</td></tr>
+                <tr><td>書き方</td><td>1 行に 1 つ。User-Agent の一部に一致すれば対象です。大文字と小文字は区別しません。</td></tr>
+                <tr><td>初期値</td><td>空</td></tr>
+                <tr><td>効く範囲</td><td>公開ページ、ログイン画面、WordPress の裏の通信など。WordPress の管理画面そのものは対象外です。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>ログイン画面にも効くので、自分のブラウザの User-Agent に含まれる語（例: <code>Mozilla</code>、<code>Chrome</code>、<code>Windows</code>）を書くと、自分もログインできなくなるおそれがあります。ボットの名前など、特定の相手にしか含まれない語を書いてください。</p>
+        </div>
+
+        <h3 id="empty-ua">User-Agentが空のアクセス</h3>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>標準動作</td><td>User-Agent が空のアクセスは、この設定に関係なく記録しません。</td></tr>
+                <tr><td>User-Agentが空のアクセスをブロックする（403エラーを返す）</td><td>オンにすると、User-Agent が空のアクセスを拒否し、「Forbidden: User-Agent required」の画面（403）を返します。初期値はオフです。</td></tr>
+                <tr><td>チェックなし（推奨）</td><td>アクセスは許可するが、記録しない。</td></tr>
+                <tr><td>チェックあり</td><td>アクセス自体を拒否する（名前を名乗らないスキャナーを止めるのに役立ちます）。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-note">
+            <div class="callout-title">補足</div>
+            <p>一部の監視サービスやサーバーの中の処理は、User-Agent を空で送ることがあります。オンにしてそれらが動かなくなったら、オフに戻してください。</p>
+        </div>
+
+        <nav class="page-nav">
+            <a href="settings-basic.html" class="prev">&laquo; 設定：表示と記録</a>
+            <a href="static-tracking.html" class="next">静的ページの計測 &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

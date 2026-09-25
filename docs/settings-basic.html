@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設定：表示と記録 - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li class="active"><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>設定：表示と記録</h1>
+        <p class="lead">「設定」タブの前半 6 つのまとまり（表示カラム・Cookie・アクセス除外・チャートの上限・自動クリーンアップ・トラッキング）の全項目を説明します。</p>
+
+        <figure class="infographic">
+            <img src="images/infographics/ig-settings-map.png" alt="設定タブの 8 つのまとまり">
+            <figcaption>「設定」タブの 8 つのまとまり（このページは前半 6 つ）</figcaption>
+        </figure>
+
+        <h2>設定の保存のしかた</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/60-settings-tab-full.png" alt="設定タブの全体" class="lightbox-trigger">
+            <figcaption>「設定」タブの全体</figcaption>
+        </figure>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>項目を変えます。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>いちばん上の「<strong>設定を保存</strong>」か、いちばん下の「<strong>変更を保存</strong>」を押します（どちらも同じです。すべての項目をまとめて保存します）。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>「設定を保存しました。」と表示されれば完了です。保存すると、グラフや合計の一時的な保存（キャッシュ）が消え、次に表示したときに新しい設定で数え直します。</p></div></div>
+
+        <h2 id="columns">表示カラム</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/61-settings-columns.png" alt="表示カラムの設定" class="lightbox-trigger">
+            <figcaption>ログ一覧に表示する列を選びます</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>何をするか</td><td>メインタブのログ一覧に表示する列を選びます。記録する内容は変わりません（表示だけです）。</td></tr>
+                <tr><td>選べる列（14）</td><td>ID、Time、Visitor ID (Cookie)、IP Address、Country、Request Path、Method、Status、Referer、User Agent、User ID、Is Bot?、Visit Type、Source。各列の意味は「<a href="log-table.html">ログ一覧とブロック</a>」。</td></tr>
+                <tr><td>初期値</td><td>すべてオン</td></tr>
+                <tr><td>注意点</td><td>すべてのチェックを外して保存すると、すべての列を表示する状態に戻ります。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-tip">
+            <div class="callout-title">おすすめ</div>
+            <p>画面が横に長くなって見づらいときは、Method・User ID・Source など、あまり見ない列を外すと、残りの列が読みやすくなります。</p>
+        </div>
+
+        <h2 id="cookie">Cookie設定</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/62-settings-cookie.png" alt="Cookie有効期限の設定" class="lightbox-trigger">
+            <figcaption>Cookie有効期限（時間）</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>何をするか</td><td>訪問者を見分ける Cookie を、何時間覚えておくかを決めます。</td></tr>
+                <tr><td>入力できる値</td><td>1〜8760 時間（8760 時間 = 1 年）</td></tr>
+                <tr><td>初期値</td><td>24 時間</td></tr>
+                <tr><td>結果</td><td>この時間の中に再び来た人は「リピーター」「ページ遷移」、過ぎてから来た人は「新規」として記録されます。長くするほど「新規」が減り、ユニーク訪問者の数も少なくなります。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-tip">
+            <div class="callout-title">おすすめ</div>
+            <p>「1 日に何人来たか」を見たいなら 24 時間（初期値）、「1 ヶ月に何人来たか」を重視するなら 720 時間（30 日）程度にします。途中で変えると、変えた前後で数字の意味が変わるので、決めたら長く変えないのがおすすめです。</p>
+        </div>
+
+        <h2 id="exclude-self">アクセス除外設定</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/63-settings-exclude-self.png" alt="自サーバーIPからのアクセス除外" class="lightbox-trigger">
+            <figcaption>自サーバーIPからのアクセス除外（サーバーの IP アドレスは例に置き換えています）</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>表示</td><td>「自サーバーと同じIPアドレスからのアクセスをログに記録しない」</td></tr>
+                <tr><td>何をするか</td><td>サーバー自身の IP アドレスからのアクセス（サーバーの中で動く定期処理や、ほかのプラグインの内部アクセスなど）を記録しません。下に「現在のサーバーIP」が表示されます（取得できないときは「取得できませんでした」）。</td></tr>
+                <tr><td>初期値</td><td>オン</td></tr>
+                <tr><td>オフにすると</td><td>サーバー自身からのアクセスも記録します。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-note">
+            <div class="callout-title">補足</div>
+            <p>自分のパソコンからのアクセスを外したいときは、この項目ではなく、ログイン状態の絞り込み（「非ログイン」）や、「ログ除外URIパターン」を使ってください。</p>
+        </div>
+
+        <h2 id="chart-limit">パフォーマンス設定（チャート表示制限）</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/64-settings-performance.png" alt="チャート表示制限" class="lightbox-trigger">
+            <figcaption>チャート表示制限（プリセットを選んだ状態）</figcaption>
+        </figure>
+        <figure class="screenshot">
+            <img src="images/screenshots/64b-settings-performance-custom.png" alt="カスタム値を選んだ状態" class="lightbox-trigger">
+            <figcaption>「カスタム値」を選ぶと、自由な数を入力できます</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>何をするか</td><td>ログから直接数えてグラフを作るとき、件数がこの上限を超えたらグラフを作らないようにします。大量のログで画面が遅くなるのを防ぎます。</td></tr>
+                <tr><td>プリセットのボタン</td><td>50K（5 万）・100K（10 万）・250K（25 万）・500K（50 万）・1M（100 万）・無制限。押すと値が入り、ボタンが青くなります。保存ボタンを押すまでは反映されません。</td></tr>
+                <tr><td>プリセット値を使用 / カスタム値</td><td>カスタム値の欄に入力すると、自動で「カスタム値」が選ばれます。1000 以上、または 0（無制限）を入力します。1〜999 を入れて保存しようとすると「カスタム値は1000以上、または0（無制限）を指定してください。」と表示され、保存されません。</td></tr>
+                <tr><td>初期値</td><td>100K（10 万）</td></tr>
+                <tr><td>現在の状況</td><td>「総ログ数」と「現在の制限」（0 なら「無制限」）を表示します。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-note">
+            <div class="callout-title">補足</div>
+            <p>期間と選択式の条件だけで絞り込んだとき（1 時間ごとの集計から表示するとき）は、件数が多くても速く表示できるので、この上限は使いません。上限が効くのは、IP アドレスやページなど文字の条件で絞り込んだときです。</p>
+        </div>
+
+        <h2 id="auto-cleanup">自動クリーンアップ</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/65-settings-cleanup.png" alt="自動クリーンアップがオフの状態" class="lightbox-trigger">
+            <figcaption>オフのときは、保存期間を入力できません</figcaption>
+        </figure>
+        <figure class="screenshot">
+            <img src="images/screenshots/65b-settings-cleanup-on.png" alt="自動クリーンアップをオンにした状態" class="lightbox-trigger">
+            <figcaption>オンにすると、保存期間を入力できます</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>自動クリーンアップを有効化（古いログを自動削除）</td><td>オンにすると、保存期間を過ぎたログを 1 日 1 回、自動で削除します。初期値は、新しく入れたサイトではオン、以前のバージョンから使っているサイトではオフです。</td></tr>
+                <tr><td>ログ保存期間（日数）</td><td>何日より古いログを削除するかです。初期値は 90 日。オフの間は入力できず、値も変わりません。オンにしたときに 0 なら 90 日になります。オンのときは 1 日以上です。</td></tr>
+                <tr><td>保存したときに起きること</td><td>オンで保存すると毎日の削除の予定を登録し、オフで保存すると予定を外します。</td></tr>
+                <tr><td>削除のしかた</td><td>一度にたくさん消してサイトが重くならないよう、少しずつ（1 回 20 秒まで）削除し、残りは続けて削除します。ログの保存形式の移し替え中は行いません。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-tip">
+            <div class="callout-title">おすすめ</div>
+            <p>多くのサイトでは 30〜90 日、アクセスの多いサイトでは 7〜30 日が目安です。1 年分の推移を見たいなら 365 日にします。消したログは戻せないので、長く残したいログは先に CSV でエクスポートしておきましょう。</p>
+        </div>
+
+        <h2 id="country">トラッキング設定</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/66-settings-tracking.png" alt="トラッキング設定" class="lightbox-trigger">
+            <figcaption>国コード取得と静的ページトラッキング（貼り付けるコードの URL は例に置き換えています）</figcaption>
+        </figure>
+        <h3>国コード取得（IPアドレスから国コードを推定）</h3>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>何をするか</td><td>ブラウザの言語設定から国が分からないとき、IP アドレスから国を調べます。</td></tr>
+                <tr><td>初期値</td><td>オフ</td></tr>
+                <tr><td>オンにすると</td><td>外部の IP 位置情報サービス（ip-api.com）に訪問者の IP アドレスを送って調べます（暗号化されない通信・待ち時間は最大 1 秒）。結果は 7 日間覚えておきます。ボットには使いません。</td></tr>
+                <tr><td>オフのままだと</td><td>国はブラウザの言語設定からだけ推定します。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>オンにすると、訪問者の IP アドレスが外部のサービスへ送られます。プライバシーポリシーへの記載を検討してください。国の決まり方は「<a href="recording.html#country">記録のルール</a>」。</p>
+        </div>
+        <h3>静的ページトラッキング</h3>
+        <p>WordPress ではない HTML だけのページのアクセスを記録する機能です。オンにして保存すると、貼り付け用のコードが表示されます。使い方は「<a href="static-tracking.html">静的ページの計測</a>」で説明します。初期値はオフです。</p>
+
+        <nav class="page-nav">
+            <a href="recording.html" class="prev">&laquo; 記録のルール</a>
+            <a href="settings-filter-block.html" class="next">設定：ログフィルタとブロック &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

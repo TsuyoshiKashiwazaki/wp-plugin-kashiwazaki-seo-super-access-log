@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV エクスポート・インポート - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li class="active"><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>CSV エクスポート・インポート</h1>
+        <p class="lead">ログを CSV ファイルに書き出して保存・分析したり、CSV ファイルからログを取り込んだりできます。</p>
+
+        <figure class="infographic">
+            <img src="images/infographics/ig-csv-flow.png" alt="CSV のエクスポートとインポートの流れ">
+            <figcaption>エクスポートは裏でファイルを作ってから一覧でダウンロード、インポートは内容を確かめてから取り込みます</figcaption>
+        </figure>
+
+        <p>「ログの管理」タブの「📁 CSV インポート・エクスポート」の区画で操作します。</p>
+
+        <h2 id="export">📤 データエクスポート</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/50-lm-export.png" alt="データエクスポートの欄" class="lightbox-trigger">
+            <figcaption>「すべてのログをエクスポート」を選んだ状態</figcaption>
+        </figure>
+        <p>ログを CSV ファイルに書き出します。バックアップや、表計算ソフトでの分析に使えます。</p>
+
+        <h3>エクスポートの範囲</h3>
+        <table>
+            <thead><tr><th style="width:30%;">選択肢</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>すべてのログをエクスポート（初期値）</td><td>保存しているすべてのログを書き出します。</td></tr>
+                <tr><td>条件を指定してエクスポート</td><td>黄色い「🔍 エクスポート条件:」の枠が開き、条件に合うログだけを書き出します。</td></tr>
+            </tbody>
+        </table>
+        <figure class="screenshot">
+            <img src="images/screenshots/51-lm-export-filtered.png" alt="条件を指定してエクスポートを選んだ状態" class="lightbox-trigger">
+            <figcaption>「条件を指定してエクスポート」を選ぶと、11 の条件の欄が開きます</figcaption>
+        </figure>
+
+        <h3>エクスポートの条件（11 項目）</h3>
+        <p>空欄の条件は使われません。複数の条件は、すべてに当てはまるログが対象です。</p>
+        <table>
+            <thead><tr><th style="width:28%;">条件</th><th>絞り込み方</th></tr></thead>
+            <tbody>
+                <tr><td>📅 開始日 / 📅 終了日</td><td>その 2 日を含む日単位の範囲。WordPress の「一般設定」のタイムゾーンの 1 日として扱います。</td></tr>
+                <tr><td>🌐 IPアドレス</td><td>IP アドレスの一部に一致</td></tr>
+                <tr><td>📊 ステータスコード</td><td>「すべて」または 200 (成功) / 301 (恒久的リダイレクト) / 302 (一時的リダイレクト) / 400 (不正リクエスト) / 403 (アクセス拒否) / 404 (未検出) / 500 (サーバーエラー) / 503 (サービス利用不可) のどれかと一致</td></tr>
+                <tr><td>🤖 アクセスタイプ</td><td>「すべて」/「通常アクセス」（ボット以外）/「ボット」</td></tr>
+                <tr><td>🌍 国コード</td><td>国コードと完全に一致。カンマで区切って複数書けます（例: <code>JP, US</code>）。</td></tr>
+                <tr><td>🔗 URLパターン</td><td>ページのパスの一部に一致（例: <code>/admin/</code>）</td></tr>
+                <tr><td>📱 User-Agentパターン</td><td>User-Agent の一部に一致（例: <code>Chrome</code>）</td></tr>
+                <tr><td>🔙 リファラー</td><td>参照元の一部に一致（例: <code>google.com</code>）</td></tr>
+                <tr><td>👥 訪問タイプ</td><td>「すべて」/「新規訪問」/「リピーター（セッション内）」/「リピーター」。「リピーター（セッション内）」に当てはまるログは記録されないため、選ぶと 0 件になります。「ページ遷移」と「不明」は選べません（「すべて」で書き出されます）。</td></tr>
+                <tr><td>💻 ソース</td><td>「すべて」/「WordPress」/「静的ページ」</td></tr>
+                <tr><td>⚠️ 疑わしいアクセスのみ</td><td>ページの URL に疑わしいキーワードを含むログだけ</td></tr>
+            </tbody>
+        </table>
+
+        <h3>手順</h3>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>範囲（と条件）を選び、「<strong>📥 CSVファイルをダウンロード</strong>」を押します。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>その場ではダウンロードされません。裏でファイルを作り始め、「エクスポート開始中...」「N件をエクスポート中...」と進み具合が表示されます。件数が多いと数分かかります。ページを開いたまま待ちます。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>「✓ エクスポート完了！ファイル一覧をご確認ください。」と表示され、下の「📦 エクスポート済みファイル」に追加されます。</p></div></div>
+        <div class="step"><span class="step-number">4</span><div class="step-content"><p>一覧の「📥 ダウンロード」を押して、ファイルを保存します。</p></div></div>
+
+        <h3>ファイルの形式</h3>
+        <table>
+            <thead><tr><th style="width:30%;">項目</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>ファイル名</td><td><code>kssl-export-日時-英数字8文字.csv</code></td></tr>
+                <tr><td>文字コード</td><td>UTF-8（先頭に BOM 付き。Excel で開いても文字化けしにくい形式）</td></tr>
+                <tr><td>見出し</td><td>英語（ID、Time、Visitor ID (Cookie)、IP Address … など、一覧の列名と同じ）</td></tr>
+                <tr><td>日時</td><td>世界標準時（UTC）。日本時間にするには 9 時間を足してください。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-note">
+            <div class="callout-title">補足</div>
+            <p>エクスポートは、1 人につき同時に 1 つまでです。実行中にもう一度押すと「エクスポート処理がすでに実行中です。しばらくお待ちください。」と表示されます（5 分以上経つと、新しく始められます）。ログの保存形式の移し替えの仕上げ中は、少し待ってから始まります。</p>
+        </div>
+
+        <h2 id="files">📦 エクスポート済みファイル</h2>
+        <figure class="screenshot">
+            <img src="images/screenshots/54-lm-export-files.png" alt="エクスポート済みファイルの一覧" class="lightbox-trigger">
+            <figcaption>作った CSV ファイルの一覧（新しい順）</figcaption>
+        </figure>
+        <table>
+            <thead><tr><th style="width:25%;">列・操作</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>ファイル名 / サイズ / 作成日時</td><td>作ったファイルの情報です。</td></tr>
+                <tr><td>📥 ダウンロード</td><td>ファイルを保存します。管理者としてログインしている人だけがダウンロードできます。</td></tr>
+                <tr><td>🗑️ 削除</td><td>「このファイルを削除してもよろしいですか？」と確認した後、ファイルを削除します。</td></tr>
+            </tbody>
+        </table>
+        <ul>
+            <li>ファイルは、外から直接開けない保管場所に置いています。</li>
+            <li>ファイルは、自分で削除するかプラグインをアンインストールするまで残ります。容量を取るので、不要になったら削除してください。</li>
+            <li>ファイルがないときは「エクスポートされたファイルはありません。」と表示されます。</li>
+        </ul>
+
+        <h2 id="import">📥 データインポート</h2>
+        <p>CSV ファイルからログを取り込みます。別のサイトからの移行や、バックアップからの復元に使えます。ログの保存形式を移し替えている途中は使えません。</p>
+
+        <h3>インポート方法を選択</h3>
+        <table>
+            <thead><tr><th style="width:35%;">方法</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>🔶 既存のエクスポートファイルから選択（推奨）（初期値）</td><td>「📦 エクスポート済みファイル」にあるファイルから選びます。画面の説明のとおり「大容量ファイル対応」で、サイズの制限はありません。「-- ファイルを選択 --」のプルダウンから選びます。一覧が古いときは「🔄 ファイル一覧を更新」を押します。選ぶと「✅ 選択されたファイル: N MB - サイズ制限なしでインポート可能」と表示されます。</td></tr>
+                <tr><td>ファイルをアップロード</td><td>パソコンの CSV ファイルを選びます。サーバーの設定で決まる大きさ（画面に「⚠️ 最大 … までのファイルのみ（現在の制限: … MB）」と表示されます。最大 500MB）までです。画面下の「💡 ヒント」のとおり、大きなファイルはいったんエクスポートしてから「既存のエクスポートファイルから選択」を使います。超えるファイルを選ぶと「❌ ファイルサイズが制限を超えています」と表示され、「既存のエクスポートファイルから選択」に切り替えるかを聞かれます。</td></tr>
+            </tbody>
+        </table>
+        <figure class="screenshot">
+            <img src="images/screenshots/52-lm-import-existing.png" alt="既存のエクスポートファイルから選択" class="lightbox-trigger">
+            <figcaption>既存のエクスポートファイルから選ぶ場合</figcaption>
+        </figure>
+        <figure class="screenshot">
+            <img src="images/screenshots/53-lm-import-upload.png" alt="ファイルをアップロード" class="lightbox-trigger">
+            <figcaption>ファイルをアップロードする場合</figcaption>
+        </figure>
+        <div class="callout callout-tip">
+            <div class="callout-title">大きなファイルを取り込むとき</div>
+            <p>アップロードの上限より大きいファイルは、表計算ソフトなどで複数のファイルに分けてから（各ファイルの 1 行目に見出しを付けて）順に取り込むか、サーバーの管理者にアップロードの上限を上げてもらってください。このサイトで作ったエクスポートファイルなら、「既存のエクスポートファイルから選択」で大きさに関係なく取り込めます。CSV の形式が分からないときは「📄 サンプルCSVをダウンロード」で見本（2 行）を確かめられます。</p>
+        </div>
+
+        <h3>取り込みのオプション</h3>
+        <table>
+            <thead><tr><th style="width:35%;">オプション（初期値）</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>重複エントリをスキップ（オン）</td><td>アクセスの日時・IP アドレス・User-Agent・ページがすべて同じログがすでにあれば、取り込みません。オフにすると重複も取り込みます。</td></tr>
+                <tr><td>データを検証してからインポート（オン）</td><td>日時が空・正しくない行は取り込まずに飛ばします。応答の番号が 100〜599 の外なら 200 として、出どころの列がなければ「Import」、訪問タイプの列がなければ「不明」として取り込みます。</td></tr>
+            </tbody>
+        </table>
+
+        <h3>手順</h3>
+        <div class="step"><span class="step-number">1</span><div class="step-content"><p>インポート方法を選び、ファイルを選びます。</p></div></div>
+        <div class="step"><span class="step-number">2</span><div class="step-content"><p>オプションを確かめ、「<strong>📤 CSVをインポート</strong>」を押します（ファイルを選ぶまで押せません）。</p></div></div>
+        <div class="step"><span class="step-number">3</span><div class="step-content"><p>裏で取り込みが進み、「バックグラウンド処理実行中: N 行を処理済み (M件インポート済み)...」と表示されます。ページを開いたまま待ちます。</p></div></div>
+        <div class="step"><span class="step-number">4</span><div class="step-content"><p>終わると「✓ インポート完了」と、取り込んだ件数・スキップした件数・エラーの件数、その内訳（最大 10 行ずつ）が表示され、ページが開き直されます。</p></div></div>
+
+        <h3>結果の見方</h3>
+        <table>
+            <thead><tr><th style="width:35%;">表示</th><th>意味</th></tr></thead>
+            <tbody>
+                <tr><td>✓ インポート成功: N件のレコードをインポートしました。</td><td>すべて取り込めました（スキップした行の数も表示）。</td></tr>
+                <tr><td>⚠️ 一部インポート成功: N件をインポートしましたが、M件のエラーが発生しました。</td><td>一部の行を取り込めませんでした。赤い「失敗」の枠で表示されますが、N 件は取り込まれています。</td></tr>
+                <tr><td>❌ インポート失敗: N件のレコードが処理されましたが、すべてエラーまたはスキップされました。</td><td>1 件も取り込めませんでした。重複で飛ばした場合もこの表示になります。</td></tr>
+                <tr><td>行 N: 重複データ（…）</td><td>重複のため飛ばした行です。</td></tr>
+                <tr><td>行 N: データ検証エラー - 日時が空です / 日時の形式が正しくありません</td><td>日時に問題があり飛ばした行です。</td></tr>
+                <tr><td>行 N: カラム数が不足しています</td><td>列の数が足りない行です。</td></tr>
+                <tr><td>行 N: データベース挿入エラー</td><td>保存できなかった行です。CSV の ID 列が、すでにあるログの ID と重なっていると起きます。</td></tr>
+                <tr><td>⚠ タイムアウト</td><td>10 分経っても終わらないと表示されます。取り込み自体は裏で続いているので、しばらくしてからページを開き直して確かめてください。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>CSV の ID 列は、そのまま記録の ID として使います。同じサイトのエクスポートファイルを、ログを消さずにもう一度取り込むと、ID が重なった行はエラーになります（重複のスキップで先に飛ばされることが多いです）。バックアップから戻すときは、戻す範囲のログを先に削除してから取り込んでください。</p>
+        </div>
+
+        <nav class="page-nav">
+            <a href="log-delete.html" class="prev">&laquo; ログの削除</a>
+            <a href="automation.html" class="next">自動で行われること &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>

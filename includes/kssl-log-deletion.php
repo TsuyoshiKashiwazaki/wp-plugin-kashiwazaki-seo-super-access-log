@@ -4,271 +4,216 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * ログ削除機能を提供するクラス
+ * Log deletion. Counting and deleting walk the table in id windows, a bounded slice per AJAX
+ * request; the browser calls again with the returned cursor until done.
  */
 class KSSL_Log_Deletion {
-    
+
+    const WINDOW = 50000;
+    const BATCH = 1000;
+    const TIME_BUDGET = 10;
+
     /**
-     * 削除条件に基づいてログ件数をカウント
+     * One bounded step of counting or deleting.
+     *
+     * @param array  $filters Deletion conditions (same meaning as before).
+     * @param string $mode    'count' or 'delete'.
+     * @param int    $cursor  Last id already processed (0 at start).
+     * @param int    $max_id  Upper id fixed at start (0 at start: read now).
+     * @return array { success, done, cursor, max_id, matched, message? }
      */
-    public static function count_logs_for_deletion($filters) {
+    public static function step( $filters, $mode, $cursor, $max_id ) {
         global $wpdb;
-        $table_name = kssl_get_log_table_name_func();
-        
-        $where_clause = self::build_deletion_where_clause($filters);
-        $params = self::build_deletion_params($filters);
-        
-        $query = "SELECT COUNT(*) FROM {$table_name}";
-        if (!empty($where_clause)) {
-            $query .= " WHERE {$where_clause}";
+        $filters = self::normalize_flags( is_array( $filters ) ? $filters : [] );
+        if ( ! empty( $filters['_invalid_date'] ) ) {
+            return [ 'success' => false, 'message' => __( '日付の形式が正しくありません (YYYY-MM-DD)。', 'kashiwazaki-seo-super-access-log' ) ];
         }
-        
-        if (!empty($params)) {
-            $count = $wpdb->get_var($wpdb->prepare($query, $params));
-        } else {
-            $count = $wpdb->get_var($query);
+        if ( $mode === 'delete' && ! kssl_job_lock() ) {
+            return [ 'success' => false, 'message' => __( '別の処理が実行中です。少し待ってから再度お試しください。', 'kashiwazaki-seo-super-access-log' ) ];
         }
-        
-        return $count !== null ? intval($count) : false;
-    }
-    
-    /**
-     * 条件に基づいてログを削除
-     */
-    public static function delete_logs_with_filters($filters) {
-        global $wpdb;
-        $table_name = kssl_get_log_table_name_func();
-        
-        // 実行時間を無制限に設定
-        set_time_limit(0);
-        
-        $where_clause = self::build_deletion_where_clause($filters);
-        $params = self::build_deletion_params($filters);
-        
-        // 削除前に件数を確認
-        $count_query = "SELECT COUNT(*) FROM {$table_name}";
-        if (!empty($where_clause)) {
-            $count_query .= " WHERE {$where_clause}";
-        }
-        
-        if (!empty($params)) {
-            $count = $wpdb->get_var($wpdb->prepare($count_query, $params));
-        } else {
-            $count = $wpdb->get_var($count_query);
-        }
-        
-        if ($count === null || $count == 0) {
+        try {
+            if ( kssl_migration_blocks_writes() ) {
+                return [ 'success' => false, 'message' => kssl_migration_block_message() ];
+            }
+            $table_name = kssl_get_log_table_name_func();
+            $cursor = max( 0, (int) $cursor );
+            $max_id = (int) $max_id;
+            if ( $max_id <= 0 ) {
+                $max_id = (int) $wpdb->get_var( "SELECT COALESCE(MAX(id), 0) FROM {$table_name}" );
+            }
+            $where = self::build_deletion_where_clause( $filters );
+            $params = self::build_deletion_params( $filters );
+            $cond = $where === '' ? '' : " AND ({$where})";
+            $matched = 0;
+            $start = microtime( true );
+
+            while ( $cursor < $max_id && microtime( true ) - $start < self::TIME_BUDGET ) {
+                $upper = min( $cursor + self::WINDOW, $max_id );
+                $window_params = array_merge( [ $cursor, $upper ], $params );
+                if ( $mode === 'count' ) {
+                    $n = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$table_name} WHERE id > %d AND id <= %d{$cond}", $window_params ) );
+                    if ( $n === null ) {
+                        return [ 'success' => false, 'message' => 'データベースエラー: ' . $wpdb->last_error ];
+                    }
+                    $matched += (int) $n;
+                    $cursor = $upper;
+                    continue;
+                }
+                // delete: collect ids (and their times) inside the window, then delete by primary key
+                $rows = $wpdb->get_results( $wpdb->prepare(
+                    "SELECT id, access_time FROM {$table_name} WHERE id > %d AND id <= %d{$cond} ORDER BY id LIMIT " . self::BATCH,
+                    $window_params
+                ) );
+                if ( $rows === null || $wpdb->last_error !== '' ) {
+                    return [ 'success' => false, 'message' => 'データベースエラー: ' . $wpdb->last_error ];
+                }
+                if ( empty( $rows ) ) {
+                    $cursor = $upper;
+                    continue;
+                }
+                $ids = array_map( 'intval', wp_list_pluck( $rows, 'id' ) );
+                // The aggregates of these hours stop being used before any row changes.
+                if ( ! kssl_agg_mark_dirty( wp_list_pluck( $rows, 'access_time' ) ) ) {
+                    return [ 'success' => false, 'message' => __( '集計の更新に失敗したため、削除を中止しました。少し待ってから再度お試しください。', 'kashiwazaki-seo-super-access-log' ) ];
+                }
+                $deleted = $wpdb->query( "DELETE FROM {$table_name} WHERE id IN (" . implode( ',', $ids ) . ')' );
+                if ( $deleted === false ) {
+                    return [ 'success' => false, 'message' => 'データベースエラー: ' . $wpdb->last_error ];
+                }
+                $matched += (int) $deleted;
+                $cursor = count( $ids ) < self::BATCH ? $upper : end( $ids );
+            }
+            if ( $mode === 'delete' && $matched > 0 ) {
+                kssl_bump_cache_generation();
+            }
             return [
                 'success' => true,
-                'message' => '削除対象のログはありませんでした。',
-                'deleted' => 0
+                'done'    => $cursor >= $max_id,
+                'cursor'  => $cursor,
+                'max_id'  => $max_id,
+                'matched' => $matched,
             ];
+        } finally {
+            if ( $mode === 'delete' ) {
+                kssl_job_unlock();
+            }
         }
-        
-        // バッチ削除の実行
-        $batch_size = 1000;
-        $total_deleted = 0;
-        
-        do {
-            $delete_query = "DELETE FROM {$table_name}";
-            if (!empty($where_clause)) {
-                $delete_query .= " WHERE {$where_clause}";
-            }
-            $delete_query .= " LIMIT {$batch_size}";
-            
-            if (!empty($params)) {
-                $deleted = $wpdb->query($wpdb->prepare($delete_query, $params));
-            } else {
-                $deleted = $wpdb->query($delete_query);
-            }
-            
-            if ($deleted === false) {
-                return [
-                    'success' => false,
-                    'message' => 'データベースエラーが発生しました: ' . $wpdb->last_error
-                ];
-            }
-            
-            $total_deleted += $deleted;
-            
-            // 短時間の待機でCPU負荷を軽減
-            if ($deleted > 0) {
-                usleep(50000); // 0.05秒
-            }
-            
-        } while ($deleted >= $batch_size);
-        
-        return [
-            'success' => true,
-            'message' => "{$total_deleted} 件のログを削除しました。",
-            'deleted' => $total_deleted
-        ];
     }
-    
+
     /**
-     * すべてのログを削除
+     * Delete every log row. TRUNCATE is one statement; if it fails, fall back to windowed deletes
+     * (the caller continues with step()).
      */
     public static function delete_all_logs() {
         global $wpdb;
-        $table_name = kssl_get_log_table_name_func();
-        
-        // 実行時間を無制限に設定
-        set_time_limit(0);
-        
-        // まず総件数を取得
-        $total_count = $wpdb->get_var("SELECT COUNT(*) FROM {$table_name}");
-        
-        if ($total_count === null || $total_count == 0) {
-            return [
-                'success' => true,
-                'message' => '削除するログはありませんでした。',
-                'deleted' => 0
-            ];
+        if ( ! kssl_job_lock() ) {
+            return [ 'success' => false, 'message' => __( '別の処理が実行中です。少し待ってから再度お試しください。', 'kashiwazaki-seo-super-access-log' ) ];
         }
-        
-        // TRUNCATE が使える場合はそれを使用（高速）
-        $result = $wpdb->query("TRUNCATE TABLE {$table_name}");
-        
-        if ($result === false) {
-            // TRUNCATE が失敗した場合はDELETEを使用
-            $batch_size = 5000;
-            $total_deleted = 0;
-            
-            do {
-                $deleted = $wpdb->query("DELETE FROM {$table_name} LIMIT {$batch_size}");
-                
-                if ($deleted === false) {
-                    return [
-                        'success' => false,
-                        'message' => 'データベースエラーが発生しました: ' . $wpdb->last_error
-                    ];
-                }
-                
-                $total_deleted += $deleted;
-                
-                // 短時間の待機でCPU負荷を軽減
-                if ($deleted > 0) {
-                    usleep(100000); // 0.1秒
-                }
-                
-            } while ($deleted >= $batch_size);
-            
-            return [
-                'success' => true,
-                'message' => "{$total_deleted} 件のログを削除しました。",
-                'deleted' => $total_deleted
-            ];
-        } else {
-            return [
-                'success' => true,
-                'message' => "{$total_count} 件のログを削除しました。",
-                'deleted' => intval($total_count)
-            ];
+        try {
+            if ( kssl_migration_blocks_writes() ) {
+                return [ 'success' => false, 'message' => kssl_migration_block_message() ];
+            }
+            $table_name = kssl_get_log_table_name_func();
+            if ( ! kssl_agg_reset_all() ) {
+                return [ 'success' => false, 'message' => __( '集計の更新に失敗したため、削除を中止しました。少し待ってから再度お試しください。', 'kashiwazaki-seo-super-access-log' ) ];
+            }
+            if ( $wpdb->query( "TRUNCATE TABLE {$table_name}" ) !== false ) {
+                kssl_bump_cache_generation();
+                return [ 'success' => true, 'done' => true, 'message' => __( 'すべてのログを削除しました。', 'kashiwazaki-seo-super-access-log' ) ];
+            }
+            return [ 'success' => true, 'done' => false, 'fallback' => true ];
+        } finally {
+            kssl_job_unlock();
         }
     }
-    
+
     /**
-     * WHERE句を構築
+     * Checkbox flags as booleans. Browsers / jQuery send '0', 'false' or '' for an unchecked box,
+     * and !empty('false') is true in PHP; FILTER_VALIDATE_BOOLEAN reads "1", "true", "on", "yes"
+     * as true and "0", "false", "off", "no", "" as false (php.net filter constants).
      */
-    private static function build_deletion_where_clause($filters) {
+    private static function normalize_flags( array $filters ) {
+        foreach ( [ 'only_bots', 'only_errors', 'only_suspicious' ] as $flag ) {
+            $filters[ $flag ] = isset( $filters[ $flag ] ) && filter_var( $filters[ $flag ], FILTER_VALIDATE_BOOLEAN );
+        }
+        // Dates are days in the site's timezone; access_time is UTC. "Older than D" = before D
+        // 00:00, a range covers whole days (to < the next day's 00:00).
+        foreach ( [ '_before', '_from', '_to_excl', '_invalid_date' ] as $k ) {
+            unset( $filters[ $k ] );
+        }
+        $type = $filters['period_type'] ?? '';
+        $dates = [];
+        if ( $type === 'older_than' && ! empty( $filters['older_than_date'] ) ) {
+            $dates['_before'] = kssl_site_date_to_utc( $filters['older_than_date'] );
+        } elseif ( $type === 'date_range' ) {
+            if ( ! empty( $filters['date_from'] ) ) {
+                $dates['_from'] = kssl_site_date_to_utc( $filters['date_from'] );
+            }
+            if ( ! empty( $filters['date_to'] ) ) {
+                $next = kssl_site_date_to_utc( $filters['date_to'] ) !== null ? gmdate( 'Y-m-d', strtotime( $filters['date_to'] . ' +1 day' ) ) : '';
+                $dates['_to_excl'] = $next !== '' ? kssl_site_date_to_utc( $next ) : null;
+            }
+        }
+        foreach ( $dates as $k => $v ) {
+            if ( $v === null ) {
+                $filters['_invalid_date'] = true;
+            } else {
+                $filters[ $k ] = $v;
+            }
+        }
+        return $filters;
+    }
+
+    /**
+     * WHERE clause (unchanged semantics, including "suspicious only" = request_uri LIKE per keyword).
+     */
+    private static function build_deletion_where_clause( $filters ) {
         $where_parts = [];
-        
-        // 期間による絞り込み
-        if (!empty($filters['period_type'])) {
-            if ($filters['period_type'] === 'older_than' && !empty($filters['older_than_date'])) {
-                $where_parts[] = "access_time < %s";
-            } elseif ($filters['period_type'] === 'date_range') {
-                if (!empty($filters['date_from'])) {
-                    $where_parts[] = "access_time >= %s";
-                }
-                if (!empty($filters['date_to'])) {
-                    $where_parts[] = "access_time <= %s";
-                }
+        if ( isset( $filters['_before'] ) ) {
+            $where_parts[] = 'access_time < %s';
+        }
+        if ( isset( $filters['_from'] ) ) {
+            $where_parts[] = 'access_time >= %s';
+        }
+        if ( isset( $filters['_to_excl'] ) ) {
+            $where_parts[] = 'access_time < %s';
+        }
+        if ( ! empty( $filters['only_bots'] ) ) {
+            $where_parts[] = 'is_bot = 1';
+        }
+        if ( ! empty( $filters['only_errors'] ) ) {
+            $where_parts[] = 'status_code >= 400';
+        }
+        if ( ! empty( $filters['only_suspicious'] ) ) {
+            $keywords = array_filter( array_map( 'trim', explode( "\n", get_option( KSSL_SUSPICIOUS_KEYWORDS_OPTION_KEY, KSSL_DEFAULT_SUSPICIOUS_KEYWORDS ) ) ) );
+            if ( ! empty( $keywords ) ) {
+                $where_parts[] = '(' . implode( ' OR ', array_fill( 0, count( $keywords ), 'request_uri LIKE %s' ) ) . ')';
             }
         }
-        
-        // ボットのみ
-        if (!empty($filters['only_bots'])) {
-            $where_parts[] = "is_bot = 1";
+        if ( ! empty( $filters['specific_ip'] ) ) {
+            $where_parts[] = 'ip_address = %s';
         }
-        
-        // エラーのみ
-        if (!empty($filters['only_errors'])) {
-            $where_parts[] = "status_code >= 400";
-        }
-        
-        // 疑わしいアクセスのみ
-        if (!empty($filters['only_suspicious'])) {
-            $suspicious_keywords_raw = get_option(KSSL_SUSPICIOUS_KEYWORDS_OPTION_KEY, KSSL_DEFAULT_SUSPICIOUS_KEYWORDS);
-            $suspicious_keywords = array_filter(array_map('trim', explode("\n", $suspicious_keywords_raw)));
-            
-            if (!empty($suspicious_keywords)) {
-                $suspicious_conditions = [];
-                foreach ($suspicious_keywords as $keyword) {
-                    $suspicious_conditions[] = "request_uri LIKE %s";
-                }
-                if (!empty($suspicious_conditions)) {
-                    $where_parts[] = "(" . implode(" OR ", $suspicious_conditions) . ")";
-                }
-            }
-        }
-        
-        // 特定のIPアドレス
-        if (!empty($filters['specific_ip'])) {
-            $where_parts[] = "ip_address = %s";
-        }
-        
-        return implode(' AND ', $where_parts);
+        return implode( ' AND ', $where_parts );
     }
-    
-    /**
-     * WHERE句のパラメータを構築
-     */
-    private static function build_deletion_params($filters) {
+
+    private static function build_deletion_params( $filters ) {
         $params = [];
-        
-        // 期間による絞り込み
-        if (!empty($filters['period_type'])) {
-            if ($filters['period_type'] === 'older_than' && !empty($filters['older_than_date'])) {
-                $params[] = $filters['older_than_date'] . ' 23:59:59';
-            } elseif ($filters['period_type'] === 'date_range') {
-                if (!empty($filters['date_from'])) {
-                    $params[] = $filters['date_from'] . ' 00:00:00';
-                }
-                if (!empty($filters['date_to'])) {
-                    $params[] = $filters['date_to'] . ' 23:59:59';
-                }
+        foreach ( [ '_before', '_from', '_to_excl' ] as $bound ) {
+            if ( isset( $filters[ $bound ] ) ) {
+                $params[] = $filters[ $bound ];
             }
         }
-        
-        // 疑わしいアクセスのみ（キーワードのパラメータ）
-        if (!empty($filters['only_suspicious'])) {
-            $suspicious_keywords_raw = get_option(KSSL_SUSPICIOUS_KEYWORDS_OPTION_KEY, KSSL_DEFAULT_SUSPICIOUS_KEYWORDS);
-            $suspicious_keywords = array_filter(array_map('trim', explode("\n", $suspicious_keywords_raw)));
-            
-            foreach ($suspicious_keywords as $keyword) {
+        if ( ! empty( $filters['only_suspicious'] ) ) {
+            $keywords = array_filter( array_map( 'trim', explode( "\n", get_option( KSSL_SUSPICIOUS_KEYWORDS_OPTION_KEY, KSSL_DEFAULT_SUSPICIOUS_KEYWORDS ) ) ) );
+            foreach ( $keywords as $keyword ) {
                 $params[] = '%' . $keyword . '%';
             }
         }
-        
-        // 特定のIPアドレス
-        if (!empty($filters['specific_ip'])) {
+        if ( ! empty( $filters['specific_ip'] ) ) {
             $params[] = $filters['specific_ip'];
         }
-        
         return $params;
     }
-}
-
-/**
- * ログ削除関数（互換性のため）
- */
-function kssl_count_logs_for_deletion($filters) {
-    return KSSL_Log_Deletion::count_logs_for_deletion($filters);
-}
-
-function kssl_delete_logs_with_filters($filters) {
-    return KSSL_Log_Deletion::delete_logs_with_filters($filters);
 }
 
 function kssl_delete_all_logs() {

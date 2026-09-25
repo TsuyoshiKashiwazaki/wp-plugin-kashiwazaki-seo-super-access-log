@@ -3,7 +3,7 @@
 Plugin Name: Kashiwazaki SEO Super Access Log
 Plugin URI: https://www.tsuyoshikashiwazaki.jp
 Description: WordPress access log plugin with visitor tracking, bot filtering, CSV export/import, charts, and security features.
-Version: 1.0.0
+Version: 1.0.1
 Author: 柏崎剛 (Tsuyoshi Kashiwazaki)
 Author URI: https://www.tsuyoshikashiwazaki.jp/profile/
 License: GPLv2 or later
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // プラグイン基本情報
 define( 'KSSL_PLUGIN_FILE_PATH', __FILE__ );
 define( 'KSSL_PLUGIN_DIR_PATH', plugin_dir_path( __FILE__ ) );
-define( 'KSSL_PLUGIN_VERSION', '1.0.2' );
+define( 'KSSL_PLUGIN_VERSION', '1.0.1' );
 
 // データベース関連
 define( 'KSSL_LOG_TABLE_NAME_CONST', 'super_access_logs' );
@@ -61,12 +61,15 @@ define( 'KSSL_CLEANUP_BATCH_SIZE', 1000 );
 
 // 必要ファイルの読み込み
 require_once KSSL_PLUGIN_DIR_PATH . 'includes/kssl-helpers.php';
+require_once KSSL_PLUGIN_DIR_PATH . 'includes/kssl-db.php';
+require_once KSSL_PLUGIN_DIR_PATH . 'includes/kssl-aggregate.php';
 require_once KSSL_PLUGIN_DIR_PATH . 'includes/kssl-activation.php';
 require_once KSSL_PLUGIN_DIR_PATH . 'includes/kssl-settings.php';
 require_once KSSL_PLUGIN_DIR_PATH . 'includes/kssl-logging.php';
 require_once KSSL_PLUGIN_DIR_PATH . 'includes/kssl-csv-handler.php';
 require_once KSSL_PLUGIN_DIR_PATH . 'includes/kssl-log-deletion.php';
 require_once KSSL_PLUGIN_DIR_PATH . 'includes/kssl-performance.php';
+require_once KSSL_PLUGIN_DIR_PATH . 'includes/kssl-chart-optimizer.php';
 require_once KSSL_PLUGIN_DIR_PATH . 'includes/admin/kssl-admin-hooks.php';
 require_once KSSL_PLUGIN_DIR_PATH . 'includes/admin/kssl-admin-display.php';
 require_once KSSL_PLUGIN_DIR_PATH . 'includes/admin/kssl-admin-table.php';
@@ -83,17 +86,58 @@ register_deactivation_hook( KSSL_PLUGIN_FILE_PATH, 'kssl_deactivate_plugin_func'
 add_action( 'init', 'kssl_handle_cookie_and_log_init_hook', 0 );
 add_action( 'rest_api_init', 'kssl_register_static_tracking_endpoint_hook' );
 add_action( 'admin_init', 'kssl_admin_session_start_hook' );
+// CSV files left in the old public directories are moved on the first request after an update
+add_action( 'init', 'kssl_maybe_move_legacy_private_files' );
+add_action( 'admin_notices', 'kssl_legacy_private_notice' );
 
-// Cronジョブの実行（kssl_cleanup_old_logsはkssl-logging.phpで登録済み）
-add_action( 'kssl_monthly_optimization', 'kssl_run_monthly_optimization' );
+// Background jobs (kssl_cleanup_old_logs is registered in kssl-logging.php)
+add_action( 'kssl_migration_tick', 'kssl_migration_tick' );
+add_action( 'kssl_derived_fill_tick', 'kssl_derived_fill_tick' );
+add_action( 'kssl_reclassify_tick', 'kssl_reclassify_tick' );
+add_action( 'kssl_agg_tick', 'kssl_agg_tick' );
+add_action( 'kssl_jobs_watchdog', 'kssl_jobs_watchdog' );
+add_action( 'admin_init', 'kssl_admin_maintain_jobs' );
+add_action( 'init', 'kssl_ensure_log_table', 1 );
+add_action( 'wp_initialize_site', 'kssl_initialize_new_site', 20 );
+
+/**
+ * First request on a site without the schema-version option (e.g. a new network site that never
+ * ran activation): create the lightweight table if no log table exists, or record the version of
+ * the existing one. Runs once per site.
+ */
+function kssl_ensure_log_table() {
+    if ( get_option( KSSL_DB_VERSION_OPTION_KEY, false ) !== false ) {
+        return;
+    }
+    // First request after updating from 1.0.0 without re-activation
+    kssl_remove_legacy_optimization();
+    if ( kssl_create_table_if_missing() ) {
+        kssl_apply_new_install_defaults();
+    }
+}
+
+function kssl_initialize_new_site( $site ) {
+    if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+        require_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+    if ( ! is_plugin_active_for_network( plugin_basename( KSSL_PLUGIN_FILE_PATH ) ) ) {
+        return;
+    }
+    switch_to_blog( (int) $site->blog_id );
+    if ( kssl_create_table_if_missing() ) {
+        kssl_apply_new_install_defaults();
+    }
+    restore_current_blog();
+}
 
 /**
  * プラグインのデアクティベーション処理
  */
 function kssl_deactivate_plugin_func() {
-    // Cronジョブの削除
-    wp_clear_scheduled_hook( 'kssl_cleanup_old_logs' );
-    wp_clear_scheduled_hook( 'kssl_monthly_optimization' );
+    // Stop every scheduled job (state options are kept; admin_init resumes them after re-activation)
+    foreach ( [ 'kssl_cleanup_old_logs', 'kssl_cleanup_old_logs_continue', 'kssl_monthly_optimization', 'kssl_migration_tick', 'kssl_derived_fill_tick', 'kssl_reclassify_tick', 'kssl_agg_tick', 'kssl_jobs_watchdog', 'kssl_export_job_step', 'kssl_import_job_step' ] as $hook ) {
+        wp_unschedule_hook( $hook );
+    }
 }
 
 function kssl_get_full_cookie_name() {

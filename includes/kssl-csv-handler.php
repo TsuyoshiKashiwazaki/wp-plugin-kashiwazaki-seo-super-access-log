@@ -46,16 +46,19 @@ class KSSL_CSV_Handler {
         
         // バッチサイズを設定
         $limit = 1000;
-        $offset = 0;
+        $last_id = 0;
+        // Upper id fixed at start: rows logged during the export are not chased.
+        $upper_id = (int) $wpdb->get_var("SELECT COALESCE(MAX(id), 0) FROM {$table_name}");
         
         while (true) {
-            $query = "SELECT * FROM {$table_name}";
+            // Keyset pagination (id > last_id) instead of OFFSET, which rescans skipped rows
+            $query = "SELECT * FROM {$table_name} WHERE id > %d AND id <= %d";
             if (!empty($where_clause)) {
-                $query .= " WHERE {$where_clause}";
+                $query .= " AND {$where_clause}";
             }
-            $query .= " ORDER BY id ASC LIMIT %d OFFSET %d";
+            $query .= " ORDER BY id ASC LIMIT %d";
             
-            $prepare_params = array_merge($params, [$limit, $offset]);
+            $prepare_params = array_merge([$last_id, $upper_id], $params, [$limit]);
             $results = $wpdb->get_results(
                 $wpdb->prepare($query, $prepare_params),
                 ARRAY_A
@@ -77,7 +80,7 @@ class KSSL_CSV_Handler {
                 break;
             }
             
-            $offset += $limit;
+            $last_id = (int) end($results)['id'];
         }
         
         fclose($handle);
@@ -99,129 +102,174 @@ class KSSL_CSV_Handler {
             return ['success' => false, 'message' => __('Could not open file.', 'kashiwazaki-seo-super-access-log')];
         }
 
-        $table_name = kssl_get_log_table_name_func();
         $all_columns = kssl_get_all_column_definitions();
-        $column_keys = array_keys($all_columns);
 
-        // 最初の行をヘッダーとして読み取り
-        $header = fgetcsv($handle);
-        if (!$header) {
-            fclose($handle);
-            return ['success' => false, 'message' => __('Could not read CSV header.', 'kashiwazaki-seo-super-access-log')];
+        // Resumable run: 'state' carries the position and counters of the previous step.
+        $state = isset($options['state']) && is_array($options['state']) ? $options['state'] : null;
+        $time_budget = isset($options['time_budget']) ? (float) $options['time_budget'] : 0;
+        $file_size = (int) filesize($file_path);
+
+        if ($state === null) {
+            $header = fgetcsv($handle);
+            if (!$header) {
+                fclose($handle);
+                return ['success' => false, 'message' => __('Could not read CSV header.', 'kashiwazaki-seo-super-access-log')];
+            }
+            if (isset($header[0])) {
+                $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
+            }
+            $column_mapping = self::create_column_mapping($header, $all_columns);
+            if (empty($column_mapping)) {
+                fclose($handle);
+                return ['success' => false, 'message' => __('No valid columns found in CSV.', 'kashiwazaki-seo-super-access-log')];
+            }
+            $state = [
+                'column_mapping' => $column_mapping,
+                'offset' => ftell($handle),
+                'line_number' => 1,
+                'imported_count' => 0,
+                'skipped_count' => 0,
+                'error_count' => 0,
+                'error_details' => [],
+                'skip_details' => [],
+            ];
+        } else {
+            fseek($handle, (int) $state['offset']);
         }
+        $column_mapping = $state['column_mapping'];
+        $line_number = (int) $state['line_number'];
+        $imported_count = (int) $state['imported_count'];
+        $skipped_count = (int) $state['skipped_count'];
+        $error_count = (int) $state['error_count'];
+        $error_details = (array) $state['error_details'];
+        $skip_details = (array) $state['skip_details'];
 
-        // BOM を削除（もしあれば）
-        if (isset($header[0])) {
-            $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
-        }
-
-        // ヘッダーとカラムのマッピング
-        $column_mapping = self::create_column_mapping($header, $all_columns);
-        if (empty($column_mapping)) {
-            fclose($handle);
-            return ['success' => false, 'message' => __('No valid columns found in CSV.', 'kashiwazaki-seo-super-access-log')];
-        }
-
-        // ファイルの総行数を取得（進捗計算用）
-        $total_lines = 0;
-        while (fgetcsv($handle) !== FALSE) {
-            $total_lines++;
-        }
-        rewind($handle);
-        fgetcsv($handle); // ヘッダーをスキップ
-
-        $imported_count = 0;
-        $skipped_count = 0;
-        $error_count = 0;
-        $line_number = 1;
-        $error_details = [];
-        $skip_details = [];
-
-        // インポートオプション
         $skip_duplicates = isset($options['skip_duplicates']) ? $options['skip_duplicates'] : true;
         $validate_data = isset($options['validate_data']) ? $options['validate_data'] : true;
         $progress_callback = isset($options['progress_callback']) ? $options['progress_callback'] : null;
 
-        // 実行時間を無制限に設定
-        set_time_limit(0);
+        $start = microtime(true);
+        $batch_size = 500;
+        $done = false;
+        $aborted = '';
 
-        // バッチ処理用の配列
-        $batch_data = [];
-        $batch_size = 100;
-        
-        while (($data = fgetcsv($handle)) !== FALSE) {
-            $line_number++;
-
-            if (count($data) < count($column_mapping)) {
-                $skipped_count++;
-                $skip_details[] = sprintf(__('行 %d: カラム数が不足しています（必要: %d, 実際: %d）', 'kashiwazaki-seo-super-access-log'), $line_number, count($column_mapping), count($data));
-                continue;
-            }
-            
-            // データをマッピング
-            $row_data = [];
-            foreach ($column_mapping as $csv_index => $db_column) {
-                $value = isset($data[$csv_index]) ? trim($data[$csv_index]) : '';
-                $row_data[$db_column] = $value;
-            }
-            
-            // データ検証
-            if ($validate_data) {
-                $validation_result = self::validate_row_data($row_data);
-                if (!$validation_result['valid']) {
+        while (true) {
+            // Read one batch of rows (position saved only after the batch is written).
+            $batch_data = [];
+            $batch_lines = [];
+            $eof = false;
+            while (count($batch_data) < $batch_size) {
+                $data = fgetcsv($handle);
+                if ($data === false) {
+                    $eof = true;
+                    break;
+                }
+                $line_number++;
+                if (count($data) < count($column_mapping)) {
                     $skipped_count++;
-                    $skip_details[] = sprintf(__('行 %d: データ検証エラー - %s', 'kashiwazaki-seo-super-access-log'), $line_number, $validation_result['error'] ?? '不明なエラー');
+                    $skip_details[] = sprintf(__('行 %d: カラム数が不足しています（必要: %d, 実際: %d）', 'kashiwazaki-seo-super-access-log'), $line_number, count($column_mapping), count($data));
                     continue;
                 }
-                $row_data = $validation_result['data'];
-            }
-            
-            // 重複チェック
-            if ($skip_duplicates && self::is_duplicate_entry($row_data)) {
-                $skipped_count++;
-                $skip_details[] = sprintf(__('行 %d: 重複データ（同じアクセス時刻・IPアドレス・User-Agent・URIのレコードが既に存在）', 'kashiwazaki-seo-super-access-log'), $line_number);
-                continue;
-            }
-            
-            $batch_data[] = $row_data;
-
-            // バッチサイズに達したら挿入
-            if (count($batch_data) >= $batch_size) {
-                $result = self::insert_batch_data($batch_data, $line_number - count($batch_data) + 1);
-                $imported_count += $result['success'];
-                $error_count += $result['error'];
-                if (!empty($result['errors'])) {
-                    $error_details = array_merge($error_details, $result['errors']);
+                $row_data = [];
+                foreach ($column_mapping as $csv_index => $db_column) {
+                    $row_data[$db_column] = isset($data[$csv_index]) ? trim($data[$csv_index]) : '';
                 }
-                $batch_data = [];
-
-                // 進捗コールバックを呼び出し
-                if ($progress_callback && is_callable($progress_callback)) {
-                    $processed_lines = $line_number - 1;
-                    $progress = $total_lines > 0 ? min(99, floor(($processed_lines / $total_lines) * 100)) : 50;
-                    call_user_func($progress_callback, [
-                        'total_lines' => $total_lines,
-                        'processed_lines' => $processed_lines,
-                        'imported_count' => $imported_count,
-                        'skipped_count' => $skipped_count,
-                        'error_count' => $error_count,
-                        'progress' => $progress
-                    ]);
+                if ($validate_data) {
+                    $validation_result = self::validate_row_data($row_data);
+                    if (!$validation_result['valid']) {
+                        $skipped_count++;
+                        $skip_details[] = sprintf(__('行 %d: データ検証エラー - %s', 'kashiwazaki-seo-super-access-log'), $line_number, $validation_result['error'] ?? '不明なエラー');
+                        continue;
+                    }
+                    $row_data = $validation_result['data'];
                 }
+                $batch_data[] = $row_data;
+                $batch_lines[] = $line_number;
+            }
+
+            if (!empty($batch_data)) {
+                if (!kssl_job_lock()) {
+                    // Another bulk job holds the lock: rewind to the saved position and retry later.
+                    fclose($handle);
+                    return self::import_step_result($state, false, '', $file_size);
+                }
+                try {
+                    if (kssl_migration_blocks_writes()) {
+                        $aborted = kssl_migration_block_message();
+                    } else {
+                        if ($skip_duplicates) {
+                            $existing = self::existing_duplicate_keys($batch_data);
+                            $kept = [];
+                            $kept_lines = [];
+                            foreach ($batch_data as $i => $row_data) {
+                                if (isset($existing[self::duplicate_key($row_data)])) {
+                                    $skipped_count++;
+                                    $skip_details[] = sprintf(__('行 %d: 重複データ（同じアクセス時刻・IPアドレス・User-Agent・URIのレコードが既に存在）', 'kashiwazaki-seo-super-access-log'), $batch_lines[$i]);
+                                    continue;
+                                }
+                                $kept[] = $row_data;
+                                $kept_lines[] = $batch_lines[$i];
+                            }
+                            $batch_data = $kept;
+                            $batch_lines = $kept_lines;
+                        }
+                        // The aggregates of the imported hours stop being used before any row changes.
+                        if (!kssl_agg_mark_dirty(array_map(function ($r) { return $r['access_time'] ?? null; }, $batch_data))) {
+                            $aborted = __('集計の更新に失敗したため、インポートを中止しました。', 'kashiwazaki-seo-super-access-log');
+                            $batch_data = [];
+                        }
+                        $result = self::insert_batch_data($batch_data, $batch_lines);
+                        $imported_count += $result['success'];
+                        $error_count += $result['error'];
+                        $error_details = array_merge($error_details, $result['errors']);
+                    }
+                } finally {
+                    kssl_job_unlock();
+                }
+            }
+
+            $state = array_merge($state, [
+                'offset' => ftell($handle),
+                'line_number' => $line_number,
+                'imported_count' => $imported_count,
+                'skipped_count' => $skipped_count,
+                'error_count' => $error_count,
+                'error_details' => array_slice($error_details, 0, 50),
+                'skip_details' => array_slice($skip_details, 0, 50),
+            ]);
+            if ($progress_callback && is_callable($progress_callback)) {
+                call_user_func($progress_callback, [
+                    'total_lines' => 0,
+                    'processed_lines' => $line_number - 1,
+                    'imported_count' => $imported_count,
+                    'skipped_count' => $skipped_count,
+                    'error_count' => $error_count,
+                    'progress' => $file_size > 0 ? min(99, (int) floor($state['offset'] * 100 / $file_size)) : 50,
+                ]);
+            }
+            if ($aborted !== '') {
+                break;
+            }
+            if ($eof) {
+                $done = true;
+                break;
+            }
+            if ($time_budget > 0 && microtime(true) - $start >= $time_budget) {
+                fclose($handle);
+                return self::import_step_result($state, false, '', $file_size);
             }
         }
 
-        // 残りのデータを挿入
-        if (!empty($batch_data)) {
-            $result = self::insert_batch_data($batch_data, $line_number - count($batch_data) + 1);
-            $imported_count += $result['success'];
-            $error_count += $result['error'];
-            if (!empty($result['errors'])) {
-                $error_details = array_merge($error_details, $result['errors']);
-            }
-        }
-        
         fclose($handle);
+        if ($imported_count > 0) {
+            kssl_bump_cache_generation();
+        }
+        if ($aborted !== '') {
+            return array_merge(self::import_step_result($state, true, '', $file_size), [
+                'success' => false,
+                'message' => $aborted . sprintf(__('（中断までに %d件をインポート済み）', 'kashiwazaki-seo-super-access-log'), $imported_count),
+            ]);
+        }
 
         // 成功判定：少なくとも1件インポートされ、エラーがない場合のみ成功
         $is_success = ($imported_count > 0 && $error_count === 0);
@@ -281,13 +329,59 @@ class KSSL_CSV_Handler {
 
         return [
             'success' => $is_success,
+            'done' => true,
             'message' => $message,
             'imported' => $imported_count,
             'skipped' => $skipped_count,
             'errors' => $error_count,
+            'imported_count' => $imported_count,
+            'skipped_count' => $skipped_count,
+            'error_count' => $error_count,
             'error_details' => $error_details,
             'skip_details' => $skip_details
         ];
+    }
+
+    /**
+     * Result of an unfinished import step (the caller schedules the next one with 'state').
+     */
+    private static function import_step_result($state, $done, $message, $file_size) {
+        return [
+            'success' => true,
+            'done' => $done,
+            'state' => $state,
+            'message' => $message,
+            'progress' => $file_size > 0 ? min(99, (int) floor($state['offset'] * 100 / $file_size)) : 50,
+            'imported_count' => $state['imported_count'],
+            'skipped_count' => $state['skipped_count'],
+            'error_count' => $state['error_count'],
+        ];
+    }
+
+    private static function duplicate_key($row) {
+        return md5(($row['access_time'] ?? '') . "\0" . ($row['ip_address'] ?? '') . "\0" . ($row['user_agent'] ?? '') . "\0" . ($row['request_uri'] ?? ''));
+    }
+
+    /**
+     * Existing rows matching the batch on the same four columns as before (one query per batch,
+     * narrowed by exact access_time values on the indexed column).
+     */
+    private static function existing_duplicate_keys($batch_data) {
+        global $wpdb;
+        $table_name = kssl_get_log_table_name_func();
+        $times = array_values(array_unique(array_filter(array_map(function ($r) { return $r['access_time'] ?? ''; }, $batch_data), 'strlen')));
+        if (empty($times)) {
+            return [];
+        }
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT access_time, ip_address, user_agent, request_uri FROM {$table_name} WHERE access_time IN (" . implode(',', array_fill(0, count($times), '%s')) . ')',
+            $times
+        ), ARRAY_A);
+        $keys = [];
+        foreach ((array) $rows as $row) {
+            $keys[self::duplicate_key($row)] = true;
+        }
+        return $keys;
     }
     
     /**
@@ -300,7 +394,7 @@ class KSSL_CSV_Handler {
             $where_parts[] = "access_time >= %s";
         }
         if (!empty($filters['date_to'])) {
-            $where_parts[] = "access_time <= %s";
+            $where_parts[] = "access_time < %s";
         }
         if (!empty($filters['ip_address'])) {
             $where_parts[] = "ip_address LIKE %s";
@@ -355,11 +449,13 @@ class KSSL_CSV_Handler {
     private static function build_where_params($filters) {
         $params = [];
 
+        // Dates are days in the site's timezone; access_time is UTC (a day ends before the next 00:00).
         if (!empty($filters['date_from'])) {
-            $params[] = $filters['date_from'] . ' 00:00:00';
+            $params[] = kssl_site_date_to_utc($filters['date_from']) ?? '9999-12-31 00:00:00';
         }
         if (!empty($filters['date_to'])) {
-            $params[] = $filters['date_to'] . ' 23:59:59';
+            $to = kssl_site_date_to_utc($filters['date_to']) !== null ? kssl_site_date_to_utc(gmdate('Y-m-d', strtotime($filters['date_to'] . ' +1 day'))) : null;
+            $params[] = $to ?? '0000-01-01 00:00:00';
         }
         if (!empty($filters['ip_address'])) {
             $params[] = '%' . $filters['ip_address'] . '%';
@@ -460,7 +556,13 @@ class KSSL_CSV_Handler {
             'country_code' => null,
             'navigation_type' => 'unknown'
         ];
-        
+
+        // The CSV has a time column but this row's time is empty: "now" would put the row on the
+        // wrong day, so skip it (a CSV without a time column still gets the import time).
+        if (array_key_exists('access_time', $row_data) && trim((string) $row_data['access_time']) === '') {
+            return ['valid' => false, 'error' => __('日時が空です', 'kashiwazaki-seo-super-access-log')];
+        }
+
         foreach ($defaults as $field => $default_value) {
             if (isset($row_data[$field]) && $row_data[$field] !== '') {
                 $validated_data[$field] = $row_data[$field];
@@ -489,7 +591,8 @@ class KSSL_CSV_Handler {
         if (isset($validated_data['access_time']) && !empty($validated_data['access_time'])) {
             $timestamp = strtotime($validated_data['access_time']);
             if ($timestamp === false) {
-                $validated_data['access_time'] = current_time('mysql', 1);
+                // Replacing the time with "now" would put the row on the wrong day: skip it instead.
+                return ['valid' => false, 'error' => sprintf(__('日時の形式が正しくありません: %s', 'kashiwazaki-seo-super-access-log'), $validated_data['access_time'])];
             } else {
                 $validated_data['access_time'] = date('Y-m-d H:i:s', $timestamp);
             }
@@ -526,34 +629,53 @@ class KSSL_CSV_Handler {
     /**
      * バッチデータの挿入
      */
-    private static function insert_batch_data($batch_data, $start_line = 0) {
+    private static function insert_batch_data($batch_data, $lines = []) {
         global $wpdb;
-        $table_name = kssl_get_log_table_name_func();
-
         $success_count = 0;
         $error_count = 0;
         $errors = [];
-
+        $batch_data = array_values($batch_data);
+        $lines = is_array($lines) ? array_values($lines) : [];
+        // Multi-row INSERTs in chunks of at most ~1 MB of SQL (on the lightweight schema each row's
+        // UA/URI is bound once per keyword), well below max_allowed_packet (4 MB on MySQL 5.7).
+        $per_row_factor = kssl_schema_is_lean() ? 2 * max(1, count(kssl_suspicious_keywords())) + 1 : 1;
+        $chunks = [];
+        $chunk = [];
+        $bytes = 0;
         foreach ($batch_data as $index => $row_data) {
-            $result = $wpdb->insert(
-                $table_name,
-                $row_data,
-                [
-                    '%s', '%s', '%s', '%s', '%s', '%s', '%d',
-                    '%d', '%d', '%s', '%s', '%s', '%s', '%s'
-                ]
-            );
-
-            if ($result !== false) {
-                $success_count++;
-            } else {
-                $error_count++;
-                $line_num = $start_line + $index;
-                $db_error = $wpdb->last_error ? $wpdb->last_error : __('不明なデータベースエラー', 'kashiwazaki-seo-super-access-log');
-                $errors[] = sprintf(__('行 %d: データベース挿入エラー - %s', 'kashiwazaki-seo-super-access-log'), $line_num, $db_error);
+            $row_bytes = 200 + $per_row_factor * (strlen((string) ($row_data['user_agent'] ?? '')) + strlen((string) ($row_data['request_uri'] ?? ''))) + strlen((string) ($row_data['referer_url'] ?? ''));
+            if (!empty($chunk) && ($bytes + $row_bytes > 1048576 || count($chunk) >= 100)) {
+                $chunks[] = $chunk;
+                $chunk = [];
+                $bytes = 0;
+            }
+            $chunk[$index] = $row_data;
+            $bytes += $row_bytes;
+        }
+        if (!empty($chunk)) {
+            $chunks[] = $chunk;
+        }
+        foreach ($chunks as $chunk) {
+            // One statement: if it fails nothing of the chunk was inserted, so retry row by row to
+            // report the failing lines as before.
+            $inserted = kssl_insert_log_rows(array_values($chunk));
+            if ($inserted !== false) {
+                $success_count += (int) $inserted;
+                continue;
+            }
+            foreach ($chunk as $index => $row_data) {
+                // Shared insert: computes is_suspicious / referer_host with the same SQL as every other path.
+                $result = kssl_insert_log_row($row_data);
+                if ($result !== false) {
+                    $success_count++;
+                } else {
+                    $error_count++;
+                    $line_num = isset($lines[$index]) ? $lines[$index] : $index;
+                    $db_error = $wpdb->last_error ? $wpdb->last_error : __('不明なデータベースエラー', 'kashiwazaki-seo-super-access-log');
+                    $errors[] = sprintf(__('行 %d: データベース挿入エラー - %s', 'kashiwazaki-seo-super-access-log'), $line_num, $db_error);
+                }
             }
         }
-
         return ['success' => $success_count, 'error' => $error_count, 'errors' => $errors];
     }
     
@@ -632,23 +754,11 @@ class KSSL_CSV_Handler {
     /**
      * エクスポートディレクトリのパスを取得
      */
-    private static function get_exports_directory() {
-        $upload_dir = wp_upload_dir();
-        $exports_dir = $upload_dir['basedir'] . '/kssl-exports';
-
-        if (!file_exists($exports_dir)) {
-            wp_mkdir_p($exports_dir);
-            // ディレクトリのパーミッションを設定（書き込み可能に）
-            @chmod($exports_dir, 0777);
-            // セキュリティ：直接アクセスを防ぐ
-            file_put_contents($exports_dir . '/.htaccess', 'deny from all');
-            file_put_contents($exports_dir . '/index.php', '<?php // Silence is golden');
-        } elseif (!is_writable($exports_dir)) {
-            // ディレクトリが書き込み不可の場合、権限を修正
-            @chmod($exports_dir, 0777);
-        }
-
-        return $exports_dir;
+    public static function get_exports_directory() {
+        // Exports hold the whole log (IP addresses included): kept in the private directory
+        // (kssl_private_dir), files from the old public location are moved there.
+        kssl_move_legacy_private_files();
+        return kssl_private_dir('exports');
     }
 
     /**
@@ -684,137 +794,157 @@ class KSSL_CSV_Handler {
     }
 
     /**
-     * バックグラウンドでエクスポートを処理
+     * Start an export job: state is stored per job and the file is written in bounded steps
+     * (kssl_export_job_step events), each resuming from the saved file position and last id.
      */
     public static function process_export_job_background($job_id, $filters = [], $user_id = null, $lock_key = null) {
         global $wpdb;
-
-        // タイムアウトを延長
-        @set_time_limit(0);
-        @ini_set('memory_limit', '512M');
-        ignore_user_abort(true);
-
-        $table_name = kssl_get_log_table_name_func();
         $exports_dir = self::get_exports_directory();
         $filename = 'kssl-export-' . date('Y-m-d-H-i-s') . '-' . substr($job_id, 0, 8) . '.csv';
-        $file_path = $exports_dir . '/' . $filename;
+        $table_name = kssl_get_log_table_name_func();
+        $job = [
+            'status'   => 'processing',
+            'filters'  => $filters,
+            'filename' => $filename,
+            'filepath' => $exports_dir . '/' . $filename,
+            'upper_id' => (int) $wpdb->get_var( "SELECT COALESCE(MAX(id), 0) FROM {$table_name}" ),
+            'last_id'  => 0,
+            'bytes'    => 0,
+            'exported' => 0,
+            'lock_key' => $lock_key,
+            'started'  => time(),
+        ];
+        set_transient( 'kssl_export_state_' . $job_id, $job, DAY_IN_SECONDS );
+        self::update_job_status( $job_id, 'processing', 'CSVファイルを生成中...', 1 );
+        self::process_export_job_step( $job_id );
+    }
 
+    /**
+     * One bounded export step (20 s): holds the shared job lock per batch, waits while the
+     * migration still has rows only in the legacy table, and saves the file offset after each batch.
+     */
+    public static function process_export_job_step( $job_id ) {
+        global $wpdb;
+        $job = get_transient( 'kssl_export_state_' . $job_id );
+        if ( ! is_array( $job ) || $job['status'] !== 'processing' ) {
+            return;
+        }
+        kssl_schedule_once( 'kssl_export_job_step', 60, [ $job_id ] );
+        // One running step per job: two steps reading the same saved position would write rows twice.
+        $mutex = 'kssl_export_running_' . md5( $job_id );
+        if ( ! kssl_job_mutex_acquire( $mutex ) ) {
+            return;
+        }
         try {
-            // ステータス更新
-            self::update_job_status($job_id, 'processing', 'CSVファイルを生成中...', 10);
+            self::run_export_step( $job_id, $job );
+        } finally {
+            kssl_job_mutex_release( $mutex );
+        }
+    }
 
-            $handle = fopen($file_path, 'w');
-            if (!$handle) {
-                throw new Exception('ファイルを作成できませんでした');
+    private static function run_export_step( $job_id, $job ) {
+        global $wpdb;
+        $job = get_transient( 'kssl_export_state_' . $job_id ); // re-read under the mutex
+        if ( ! is_array( $job ) || $job['status'] !== 'processing' ) {
+            return;
+        }
+        if ( kssl_migration_export_should_wait() ) {
+            self::update_job_status( $job_id, 'processing', 'ログテーブルの移行の仕上げが終わるのを待っています...', self::export_progress( $job ) );
+            return;
+        }
+        $column_keys = array_keys( kssl_get_all_column_definitions() );
+        $where_clause = self::build_where_clause( $job['filters'] );
+        $params = self::build_where_params( $job['filters'] );
+        $handle = fopen( $job['filepath'], $job['bytes'] > 0 ? 'c+' : 'w' );
+        if ( ! $handle ) {
+            self::finish_export_job( $job_id, $job, 'error', 'ファイルを作成できませんでした' );
+            return;
+        }
+        if ( $job['bytes'] > 0 ) {
+            // Drop anything written after the last saved position (a crashed step), then append.
+            ftruncate( $handle, $job['bytes'] );
+            fseek( $handle, $job['bytes'] );
+        } else {
+            fwrite( $handle, "\xEF\xBB\xBF" );
+            fputcsv( $handle, array_values( kssl_get_all_column_definitions() ) );
+        }
+        $start = microtime( true );
+        $done = false;
+        $progressed = false;
+        while ( microtime( true ) - $start < 20 ) {
+            if ( ! kssl_job_lock() ) {
+                break;
             }
-
-            // BOMを追加
-            fwrite($handle, "\xEF\xBB\xBF");
-
-            // ヘッダー
-            $all_columns = kssl_get_all_column_definitions();
-            $column_keys = array_keys($all_columns);
-            $header_labels = array_values($all_columns);
-            fputcsv($handle, $header_labels);
-
-            // WHERE句を構築
-            $where_clause = KSSL_CSV_Handler::build_where_clause($filters);
-            $params = KSSL_CSV_Handler::build_where_params($filters);
-
-            // 総レコード数を取得
-            $count_query = "SELECT COUNT(*) FROM {$table_name}";
-            if (!empty($where_clause)) {
-                $count_query .= " WHERE {$where_clause}";
-            }
-            $total = empty($params) ?
-                $wpdb->get_var($count_query) :
-                $wpdb->get_var($wpdb->prepare($count_query, $params));
-
-            self::update_job_status($job_id, 'processing', sprintf('%s件のレコードをエクスポート中...', number_format($total)), 20, $total);
-
-            // バッチ処理
-            $limit = 1000;
-            $offset = 0;
-            $exported = 0;
-
-            while (true) {
-                $query = "SELECT * FROM {$table_name}";
-                if (!empty($where_clause)) {
-                    $query .= " WHERE {$where_clause}";
-                }
-                $query .= " ORDER BY id ASC LIMIT %d OFFSET %d";
-
-                $prepare_params = array_merge($params, [$limit, $offset]);
-                $results = $wpdb->get_results(
-                    $wpdb->prepare($query, $prepare_params),
-                    ARRAY_A
-                );
-
-                if (empty($results)) {
+            try {
+                if ( kssl_migration_export_should_wait() ) {
                     break;
                 }
-
-                foreach ($results as $row) {
-                    $ordered_row = [];
-                    foreach ($column_keys as $key) {
-                        $ordered_row[] = $row[$key] ?? '';
-                    }
-                    fputcsv($handle, $ordered_row);
+                $table_name = kssl_get_log_table_name_func();
+                $sql = "SELECT * FROM {$table_name} WHERE id > %d AND id <= %d" . ( $where_clause !== '' ? " AND {$where_clause}" : '' ) . ' ORDER BY id ASC LIMIT 1000';
+                $results = $wpdb->get_results( $wpdb->prepare( $sql, array_merge( [ (int) $job['last_id'], (int) $job['upper_id'] ], $params ) ), ARRAY_A );
+            } finally {
+                kssl_job_unlock();
+            }
+            if ( $results === null ) {
+                break;
+            }
+            foreach ( $results as $row ) {
+                $ordered_row = [];
+                foreach ( $column_keys as $key ) {
+                    $ordered_row[] = $row[ $key ] ?? '';
                 }
-
-                $exported += count($results);
-                $progress = $total > 0 ? min(90, 20 + (($exported / $total) * 70)) : 90;
-                self::update_job_status(
-                    $job_id,
-                    'processing',
-                    sprintf('%s / %s件をエクスポート中...', number_format($exported), number_format($total)),
-                    $progress,
-                    $total
-                );
-
-                if (count($results) < $limit) {
-                    break;
-                }
-
-                $offset += $limit;
+                fputcsv( $handle, $ordered_row );
             }
-
-            fclose($handle);
-
-            // ファイルのパーミッションを設定（削除可能にする）
-            @chmod($file_path, 0666);
-
-            // 完了
-            $file_size = filesize($file_path);
-            self::update_job_status($job_id, 'completed', sprintf('エクスポート完了！ %s件のレコード（%s）', number_format($exported), size_format($file_size)), 100, $total);
-
-            // ファイル情報を保存
-            set_transient('kssl_export_file_' . $job_id, [
-                'filename' => $filename,
-                'filepath' => $file_path,
-                'size' => $file_size,
-                'records' => $exported,
-                'created' => time()
-            ], 86400 * 7); // 7日間保持
-
-            // Release lock after successful completion
-            if ($lock_key !== null) {
-                delete_transient($lock_key);
+            fflush( $handle );
+            $job['exported'] += count( $results );
+            if ( count( $results ) < 1000 ) {
+                $job['last_id'] = $job['upper_id'];
+                $done = true;
+            } else {
+                $job['last_id'] = (int) end( $results )['id'];
             }
+            $job['bytes'] = ftell( $handle );
+            set_transient( 'kssl_export_state_' . $job_id, $job, DAY_IN_SECONDS );
+            $progressed = true;
+            if ( $done ) {
+                break;
+            }
+        }
+        fclose( $handle );
+        if ( $done ) {
+            $file_size = filesize( $job['filepath'] );
+            set_transient( 'kssl_export_file_' . $job_id, [
+                'filename' => $job['filename'],
+                'filepath' => $job['filepath'],
+                'size'     => $file_size,
+                'records'  => $job['exported'],
+                'created'  => time(),
+            ], 86400 * 7 );
+            self::finish_export_job( $job_id, $job, 'completed', sprintf( 'エクスポート完了！ %s件のレコード（%s）', number_format( $job['exported'] ), size_format( $file_size ) ) );
+            return;
+        }
+        self::update_job_status( $job_id, 'processing', sprintf( '%s件をエクスポート中...', number_format( $job['exported'] ) ), self::export_progress( $job ) );
+        if ( ! empty( $progressed ) ) {
+            // Continue right away (replaces the 60 s safety event registered at the start of the step).
+            wp_clear_scheduled_hook( 'kssl_export_job_step', [ $job_id ] );
+            wp_schedule_single_event( time(), 'kssl_export_job_step', [ $job_id ] );
+        }
+    }
 
-        } catch (Exception $e) {
-            self::update_job_status($job_id, 'error', 'エラー: ' . $e->getMessage(), 0);
-            if (isset($handle) && $handle) {
-                fclose($handle);
-            }
-            if (file_exists($file_path)) {
-                @unlink($file_path);
-            }
+    private static function export_progress( $job ) {
+        return $job['upper_id'] > 0 ? min( 99, (int) floor( $job['last_id'] * 100 / $job['upper_id'] ) ) : 99;
+    }
 
-            // Release lock after error
-            if ($lock_key !== null) {
-                delete_transient($lock_key);
-            }
+    private static function finish_export_job( $job_id, $job, $status, $message ) {
+        wp_clear_scheduled_hook( 'kssl_export_job_step', [ $job_id ] ); // only this job's events
+        $job['status'] = $status;
+        set_transient( 'kssl_export_state_' . $job_id, $job, DAY_IN_SECONDS );
+        self::update_job_status( $job_id, $status, $message, $status === 'completed' ? 100 : 0, $job['exported'] );
+        if ( $status !== 'completed' && ! empty( $job['filepath'] ) && file_exists( $job['filepath'] ) ) {
+            @unlink( $job['filepath'] );
+        }
+        if ( ! empty( $job['lock_key'] ) ) {
+            delete_transient( $job['lock_key'] );
         }
     }
 
@@ -920,13 +1050,6 @@ class KSSL_CSV_Handler {
         if (!is_file($filepath)) {
             error_log('KSSL: Not a file: ' . $filepath);
             return false;
-        }
-
-        // 権限確認
-        if (!is_writable($filepath)) {
-            error_log('KSSL: File not writable: ' . $filepath);
-            // 権限を変更してみる
-            @chmod($filepath, 0666);
         }
 
         // 削除実行

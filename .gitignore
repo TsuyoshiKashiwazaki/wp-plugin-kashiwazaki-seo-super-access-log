@@ -25,3 +25,46 @@ package-lock.json
 
 # OS generated files
 Thumbs.db
+
+# AI / 開発ツール設定 (公開しない)
+CLAUDE.md
+.codex
+.cursor/
+.aider*
+.copilot/
+.github/copilot/
+
+# 開発作業の一時ファイル
+.playwright-mcp/
+.tmp/
+/-f
+/-t
+/-t.progress
+
+# スクリーンショット・ゴミ (ルートレベル)
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/*.bmp
+/*.md.bak
+
+# 依存管理 (配布しない)
+/vendor/
+composer.json
+composer.lock
+package.json
+
+# IDE
+.vscode/
+
+# ビルド
+/build/
+/dist/
+
+# PHPUnit
+.phpunit.result.cache
+.phpunit.cache/
+
+# WordPress (誤コミット防止)
+wp-config.php

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自動で行われること - Kashiwazaki SEO Super Access Log マニュアル</title>
+    <link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+    <button class="hamburger-btn" aria-label="メニューを開く">&#9776;</button>
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2 style="color:#fff;">Super Access Log</h2>
+            <span class="version">v1.0.1</span>
+            <img src="images/main-visual.png" alt="" style="width:100%;border-radius:4px;margin-top:8px;">
+        </div>
+        <ul>
+            <li><a href="index.html">概要</a></li>
+            <li><a href="setup.html">インストール・初期設定</a></li>
+            <li><a href="main-screen.html">メイン画面の見方</a></li>
+            <li><a href="filters.html">絞り込み</a></li>
+            <li><a href="charts.html">グラフの見方</a></li>
+            <li><a href="log-table.html">ログ一覧とブロック</a></li>
+            <li><a href="recording.html">記録のルール</a></li>
+            <li><a href="settings-basic.html">設定：表示と記録</a></li>
+            <li><a href="settings-filter-block.html">設定：ログフィルタとブロック</a></li>
+            <li><a href="static-tracking.html">静的ページの計測</a></li>
+            <li><a href="log-management.html">データベースとキャッシュ</a></li>
+            <li><a href="log-delete.html">ログの削除</a></li>
+            <li><a href="csv.html">CSV エクスポート・インポート</a></li>
+            <li class="active"><a href="automation.html">自動で行われること</a></li>
+            <li><a href="messages.html">メッセージ一覧</a></li>
+            <li><a href="troubleshooting.html">困ったとき</a></li>
+            <li><a href="glossary.html">用語集</a></li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <h1>自動で行われること</h1>
+        <p class="lead">毎日・1 時間ごとの定期処理や、有効化・無効化・アンインストール・更新のときに自動で行われることをまとめます。</p>
+
+        <h2 id="scheduled">定期的に行われる処理</h2>
+        <p>次の処理は、WordPress の予約実行のしくみ（WP-Cron）で自動的に行われます。WP-Cron は、サイトにアクセスがあったときに動くので、アクセスがほとんどないサイトでは予定の時刻より遅れることがあります。</p>
+        <table>
+            <thead><tr><th style="width:25%;">処理</th><th style="width:20%;">頻度</th><th>内容</th></tr></thead>
+            <tbody>
+                <tr><td>自動クリーンアップ</td><td>1 日 1 回（オンのとき）</td><td>保存期間を過ぎたログを削除します。サイトが重くならないよう 1 回 20 秒まで少しずつ削除し、残りは続けて削除します。ログの保存形式の移し替え中は行いません。</td></tr>
+                <tr><td>見回り</td><td>1 時間ごと</td><td>止まっている処理（移し替え・集計の作成など）があれば再開します。取り込みの途中で残った一時ファイル（2 日より古いもの）を片付けます。</td></tr>
+                <tr><td>集計の作成</td><td>約 5 分ごと（作業が残っているときは約 30 秒ごと）</td><td>合計とグラフを速く表示するための 1 時間ごとの集計を作り足します。作った集計は、毎回 1 日分ずつログと照らし合わせて確かめます。</td></tr>
+                <tr><td>移し替え・判定のやり直し・エクスポート・インポート</td><td>始めたとき</td><td>時間のかかる処理は、1 回 20 秒ずつに分けて、終わるまで続けて行います。</td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-tip">
+            <div class="callout-title">おすすめ</div>
+            <p>サーバーの管理画面などで、WP-Cron を定期的に動かす設定（サーバーの cron から <code>wp-cron.php</code> を呼ぶ設定）をしておくと、アクセスの少ないサイトでも定期処理が予定どおりに動きます。</p>
+        </div>
+
+        <h2 id="lifecycle">有効化・無効化・アンインストールのとき</h2>
+        <table>
+            <thead><tr><th style="width:25%;">場面</th><th>自動で行われること</th></tr></thead>
+            <tbody>
+                <tr><td>有効化したとき</td><td>
+                    <ul>
+                        <li>ログの保存先がなければ作ります（軽量な形式）。</li>
+                        <li>まだ設定していない項目に初期値を入れます。</li>
+                        <li>新しく入れたサイトでは、自動クリーンアップをオン・保存期間 90 日にします。</li>
+                        <li>毎日の自動クリーンアップと、1 時間ごとの見回りを予定に入れます。</li>
+                        <li>以前のバージョンの「毎月の最適化」の予定があれば外します（1.0.1 では不要になりました）。</li>
+                        <li>ボット検出パターンが以前のバージョンの初期値のままなら、AI のクローラーを含む新しい初期値に更新します。</li>
+                    </ul>
+                </td></tr>
+                <tr><td>無効化したとき</td><td>定期処理の予定をすべて外します。ログと設定は残るので、もう一度有効化すれば続きから使えます。</td></tr>
+                <tr><td>アンインストール（削除）したとき</td><td>
+                    <ul>
+                        <li>ログ・集計・移し替え用の保存先をすべて削除します。</li>
+                        <li>すべての設定・一時的なデータ・予定を削除します。</li>
+                        <li>エクスポート・インポートの CSV ファイルの保管場所（以前のバージョンが使っていた場所も含む）を削除します。</li>
+                        <li>マルチサイトでは、すべてのサイトの分を削除します。</li>
+                    </ul>
+                </td></tr>
+            </tbody>
+        </table>
+        <div class="callout callout-warning">
+            <div class="callout-title">注意</div>
+            <p>アンインストールすると、ログとエクスポートしたファイルがすべて消え、元に戻せません。残したいログは、先にエクスポートしてファイルをダウンロードしておいてください。一時的に止めたいだけなら、アンインストールではなく「無効化」にしてください。</p>
+        </div>
+
+        <h2 id="update">更新したとき・管理画面を開いたとき</h2>
+        <table>
+            <thead><tr><th style="width:25%;">場面</th><th>自動で行われること</th></tr></thead>
+            <tbody>
+                <tr><td>更新後の最初のアクセス</td><td>
+                    <ul>
+                        <li>ログの保存形式を確かめます。</li>
+                        <li>以前のバージョンがエクスポート・インポートの CSV ファイルを置いていた場所から、外から見られない保管場所へファイルを移します。移せなかったときは 10 分ごとに試し直し、管理画面の上部に赤いお知らせを出します（→ <a href="troubleshooting.html#old-csv-dir">困ったとき</a>）。</li>
+                    </ul>
+                </td></tr>
+                <tr><td>管理画面を開いたとき</td><td>
+                    <ul>
+                        <li>見回りの予定がなければ登録し、止まっている処理があれば動かします。</li>
+                        <li>自動クリーンアップがオンなのに予定がなければ、予定を登録し直します。</li>
+                        <li>ログが以前の形式で、約 20 万件より少なければ、軽量な形式への移し替えを始めます。</li>
+                    </ul>
+                </td></tr>
+                <tr><td>マルチサイトで新しいサイトを作ったとき</td><td>ネットワーク全体で有効にしている場合、新しいサイトにもログの保存先を作ります。</td></tr>
+            </tbody>
+        </table>
+
+        <h2 id="while-migrating">移し替えの途中にできないこと</h2>
+        <p>以前の形式から軽量な形式へ移し替えている途中は、ログが 2 か所にあるため、次の操作を止めています。移し替えが終わると、自動で使えるようになります。</p>
+        <ul>
+            <li>ログの削除（条件付き・全件）</li>
+            <li>CSV のインポート</li>
+            <li>自動クリーンアップ</li>
+            <li>疑わしいキーワードの変更</li>
+        </ul>
+        <p>エクスポートは、移し替えの最後の仕上げの間だけ少し待ってから始まります。記録と閲覧は、移し替えの途中もそのまま使えます。</p>
+
+        <nav class="page-nav">
+            <a href="csv.html" class="prev">&laquo; CSV エクスポート・インポート</a>
+            <a href="messages.html" class="next">メッセージ一覧 &raquo;</a>
+        </nav>
+
+        <footer class="manual-footer">
+            <p>作者: <a href="https://www.tsuyoshikashiwazaki.jp/profile/" target="_blank" rel="noopener">柏崎剛（Tsuyoshi Kashiwazaki）</a></p>
+            <p>プラグイン: Kashiwazaki SEO Super Access Log v1.0.1 | <a href="https://github.com/TsuyoshiKashiwazaki/wp-plugin-kashiwazaki-seo-super-access-log" target="_blank" rel="noopener">GitHub</a></p>
+        </footer>
+    </main>
+
+    <div class="lightbox"></div>
+    <script src="js/manual.js?v=1"></script>
+</body>
+</html>
